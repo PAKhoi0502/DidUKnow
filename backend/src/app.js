@@ -1,16 +1,24 @@
-const express = require("express");
-const mongoose = require("mongoose");
-
-const routes = require("./routes");
+import express from "express";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger.js";
+import routes from "./routes/index.js";
 
 const app = express();
 
 app.use(express.json());
-
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB connected"))
-    .catch(err => console.log(err));
-
+app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+        explorer: true,
+        customSiteTitle: "DidUKnow API Docs",
+        swaggerOptions: {
+            docExpansion: "list",
+            tagsSorter: "alpha",
+            operationsSorter: "alpha"
+        }
+    })
+);
 app.use("/api", routes);
 
-module.exports = app;
+export default app;
