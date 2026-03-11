@@ -5,17 +5,24 @@ import {
     getUsersController,
     loginUserController,
     updateUserController,
+    updateUserRoleController,
     updateMyLanguageController
 } from "./user.controller.js";
 import {
     validateCreateUser,
     validateLoginUser,
     validateUpdateLanguage,
+    validateUpdateUserRole,
     validateUpdateUser,
     validateUserIdParam
 } from "./user.validator.js";
 import { authenticate } from "../../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../../middlewares/role.middleware.js";
+import {
+    createUserRateLimit,
+    loginAccountRateLimit,
+    loginIpRateLimit
+} from "../../middlewares/rateLimit.middleware.js";
 
 const router = express.Router();
 
@@ -53,7 +60,7 @@ router.get("/", authenticate, authorizeRoles("Admin"), getUsersController);
  *       409:
  *         $ref: '#/components/responses/UserDuplicateResponse'
  */
-router.post("/", validateCreateUser, createUserController);
+router.post("/", createUserRateLimit, validateCreateUser, createUserController);
 
 /**
  * @swagger
@@ -71,7 +78,7 @@ router.post("/", validateCreateUser, createUserController);
  *       401:
  *         description: invalid credentials
  */
-router.post("/login", validateLoginUser, loginUserController);
+router.post("/login", loginIpRateLimit, loginAccountRateLimit, validateLoginUser, loginUserController);
 
 /**
  * @swagger
@@ -92,6 +99,44 @@ router.post("/login", validateLoginUser, loginUserController);
  *         description: unauthorized
  */
 router.patch("/me/language", authenticate, validateUpdateLanguage, updateMyLanguageController);
+
+/**
+ * @swagger
+ * /api/users/{id}/role:
+ *   patch:
+ *     tags: [User]
+ *     summary: Update user role by id
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: 67ceca911fdb988f26fcbf95
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/UpdateUserRoleRequestBody'
+ *     responses:
+ *       200:
+ *         description: success
+ *       400:
+ *         $ref: '#/components/responses/ValidationFailedResponse'
+ *       401:
+ *         description: unauthorized
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenResponse'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundResponse'
+ */
+router.patch(
+    "/:id/role",
+    authenticate,
+    authorizeRoles("Admin"),
+    validateUserIdParam,
+    validateUpdateUserRole,
+    updateUserRoleController
+);
 
 /**
  * @swagger

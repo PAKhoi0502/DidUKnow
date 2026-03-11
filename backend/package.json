@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
+    "seed:roles": "node src/scripts/seedRole.js",
     "seed:users": "node src/scripts/seedUser.js",
-    "seed:editor": "node src/scripts/seedUser.js",
+    "seed:editor": "node src/scripts/seedEditor.js",
+    "seed:all": "npm run seed:roles && npm run seed:users",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -18,6 +20,8 @@
     "bcrypt": "^6.0.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.3.1",
+    "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.4",
     "swagger-jsdoc": "^6.2.8",

@@ -96,7 +96,6 @@ const options = {
                         username: { type: "string", example: "newname" },
                         email: { type: "string", example: "newmail@example.com" },
                         password: { type: "string", example: "newsecret123" },
-                        role_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
                         avatar_url: { type: "string", nullable: true },
                         language: { type: "string", enum: ["vi", "en"], example: "en" },
                         status: {
@@ -104,6 +103,14 @@ const options = {
                             enum: ["active", "inactive", "banned"],
                             example: "active"
                         }
+                    }
+                },
+                UpdateUserRoleInput: {
+                    type: "object",
+                    required: ["role_id"],
+                    properties: {
+                        role_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        reason: { type: "string", example: "Promoted to moderator for content review tasks" }
                     }
                 }
             },
@@ -164,6 +171,16 @@ const options = {
                         "application/json": {
                             schema: {
                                 $ref: "#/components/schemas/UpdateUserInput"
+                            }
+                        }
+                    }
+                },
+                UpdateUserRoleRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/UpdateUserRoleInput"
                             }
                         }
                     }

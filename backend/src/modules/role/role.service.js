@@ -1,5 +1,6 @@
 import Role from "./role.model.js";
 import User from "../user/user.model.js";
+import { createHttpError } from "../../utils/httpError.js";
 
 const mapRoleResponse = (roleDoc) => {
     return {
@@ -21,9 +22,7 @@ export const createRole = async (payload) => {
     const existed = await Role.findOne({ name: payload.name }).lean();
 
     if (existed) {
-        const error = new Error("Role name already exists");
-        error.status = 409;
-        throw error;
+        throw createHttpError(409, "Role name already exists");
     }
 
     const role = await Role.create({
@@ -43,9 +42,7 @@ export const updateRoleById = async (roleId, payload) => {
         }).lean();
 
         if (existedName) {
-            const error = new Error("Role name already exists");
-            error.status = 409;
-            throw error;
+            throw createHttpError(409, "Role name already exists");
         }
     }
 
@@ -56,9 +53,7 @@ export const updateRoleById = async (roleId, payload) => {
     );
 
     if (!role) {
-        const error = new Error("Role not found");
-        error.status = 404;
-        throw error;
+        throw createHttpError(404, "Role not found");
     }
 
     return mapRoleResponse(role.toObject());
@@ -67,17 +62,13 @@ export const updateRoleById = async (roleId, payload) => {
 export const deleteRoleById = async (roleId) => {
     const isRoleInUse = await User.exists({ role_id: roleId });
     if (isRoleInUse) {
-        const error = new Error("Cannot delete role because it is being used by users");
-        error.status = 409;
-        throw error;
+        throw createHttpError(409, "Cannot delete role because it is being used by users");
     }
 
     const role = await Role.findByIdAndDelete(roleId);
 
     if (!role) {
-        const error = new Error("Role not found");
-        error.status = 404;
-        throw error;
+        throw createHttpError(404, "Role not found");
     }
 
     return mapRoleResponse(role.toObject());

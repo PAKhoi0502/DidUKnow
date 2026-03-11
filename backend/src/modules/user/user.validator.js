@@ -109,7 +109,7 @@ export const validateUserIdParam = (req, res, next) => {
 
 export const validateUpdateUser = async (req, res, next) => {
     const payload = req.body || {};
-    const allowedFields = ["username", "email", "password", "role_id", "avatar_url", "language", "status"];
+    const allowedFields = ["username", "email", "password", "avatar_url", "language", "status"];
     const inputKeys = Object.keys(payload);
 
     if (inputKeys.length === 0) {
@@ -131,7 +131,6 @@ export const validateUpdateUser = async (req, res, next) => {
         username,
         email,
         password,
-        role_id: roleId,
         avatar_url: avatarUrl,
         language,
         status
@@ -149,10 +148,6 @@ export const validateUpdateUser = async (req, res, next) => {
 
     if (password !== undefined && (typeof password !== "string" || password.length < 6)) {
         errors.push("password must be at least 6 characters");
-    }
-
-    if (roleId !== undefined && !mongoose.Types.ObjectId.isValid(roleId)) {
-        errors.push("role_id must be a valid ObjectId");
     }
 
     if (avatarUrl !== undefined && avatarUrl !== null && typeof avatarUrl !== "string") {
@@ -174,15 +169,51 @@ export const validateUpdateUser = async (req, res, next) => {
         });
     }
 
+    req.validatedBody = {
+        ...(username !== undefined ? { username: username.trim() } : {}),
+        ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
+        ...(password !== undefined ? { password } : {}),
+        ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+        ...(language !== undefined ? { language } : {}),
+        ...(status !== undefined ? { status } : {})
+    };
+
+    return next();
+};
+
+export const validateUpdateUserRole = async (req, res, next) => {
+    const { role_id: roleId, reason } = req.body || {};
+    const inputKeys = Object.keys(req.body || {});
+    const invalidFields = inputKeys.filter((key) => !["role_id", "reason"].includes(key));
+
+    if (invalidFields.length > 0) {
+        return res.status(400).json({
+            message: "Validation failed",
+            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+        });
+    }
+
+    if (!roleId || typeof roleId !== "string" || !mongoose.Types.ObjectId.isValid(roleId)) {
+        return res.status(400).json({
+            message: "Validation failed",
+            errors: ["role_id must be a valid ObjectId"]
+        });
+    }
+
+    if (reason !== undefined && (typeof reason !== "string" || reason.trim().length < 3)) {
+        return res.status(400).json({
+            message: "Validation failed",
+            errors: ["reason must be at least 3 characters"]
+        });
+    }
+
     try {
-        if (roleId !== undefined) {
-            const roleExists = await Role.exists({ _id: roleId });
-            if (!roleExists) {
-                return res.status(400).json({
-                    message: "Validation failed",
-                    errors: ["role_id does not exist"]
-                });
-            }
+        const roleExists = await Role.exists({ _id: roleId });
+        if (!roleExists) {
+            return res.status(400).json({
+                message: "Validation failed",
+                errors: ["role_id does not exist"]
+            });
         }
     } catch (error) {
         return res.status(500).json({
@@ -192,14 +223,8 @@ export const validateUpdateUser = async (req, res, next) => {
     }
 
     req.validatedBody = {
-        ...(username !== undefined ? { username: username.trim() } : {}),
-        ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
-        ...(password !== undefined ? { password } : {}),
-        ...(roleId !== undefined ? { role_id: roleId } : {}),
-        ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
-        ...(language !== undefined ? { language } : {}),
-        ...(status !== undefined ? { status } : {})
+        role_id: roleId,
+        ...(reason !== undefined ? { reason: reason.trim() } : {})
     };
-
     return next();
 };

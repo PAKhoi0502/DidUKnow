@@ -1,22 +1,19 @@
 import User from "../modules/user/user.model.js";
 import { verifyAccessToken } from "../utils/generateToken.js";
+import { createHttpError } from "../utils/httpError.js";
 
 export const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({
-            message: "Unauthorized"
-        });
+        return next(createHttpError(401, "Unauthorized"));
     }
 
     const token = authHeader.slice(7).trim();
     const payload = verifyAccessToken(token);
 
     if (!payload?.user_id) {
-        return res.status(401).json({
-            message: "Invalid or expired token"
-        });
+        return next(createHttpError(401, "Invalid or expired token"));
     }
 
     try {
@@ -25,15 +22,11 @@ export const authenticate = async (req, res, next) => {
             .lean();
 
         if (!user) {
-            return res.status(401).json({
-                message: "User not found"
-            });
+            return next(createHttpError(401, "User not found"));
         }
 
         if (user.status !== "active") {
-            return res.status(403).json({
-                message: "User account is not active"
-            });
+            return next(createHttpError(403, "User account is not active"));
         }
 
         req.user = {
@@ -44,9 +37,6 @@ export const authenticate = async (req, res, next) => {
 
         return next();
     } catch (error) {
-        return res.status(500).json({
-            message: "Internal server error",
-            error: error.message
-        });
+        return next(error);
     }
 };

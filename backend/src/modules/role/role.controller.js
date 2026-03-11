@@ -5,7 +5,7 @@ import {
     updateRoleById
 } from "./role.service.js";
 
-export const getRolesController = async (req, res) => {
+export const getRolesController = async (req, res, next) => {
     try {
         const roles = await getAllRoles();
         return res.status(200).json({
@@ -13,14 +13,11 @@ export const getRolesController = async (req, res) => {
             data: roles
         });
     } catch (error) {
-        return res.status(500).json({
-            message: "Internal server error",
-            error: error.message
-        });
+        return next(error);
     }
 };
 
-export const createRoleController = async (req, res) => {
+export const createRoleController = async (req, res, next) => {
     try {
         const role = await createRole(req.validatedBody);
         return res.status(201).json({
@@ -28,13 +25,11 @@ export const createRoleController = async (req, res) => {
             data: role
         });
     } catch (error) {
-        return res.status(error.status || 500).json({
-            message: error.message || "Internal server error"
-        });
+        return next(error);
     }
 };
 
-export const updateRoleController = async (req, res) => {
+export const updateRoleController = async (req, res, next) => {
     try {
         const role = await updateRoleById(req.params.id, req.validatedBody);
         return res.status(200).json({
@@ -42,13 +37,11 @@ export const updateRoleController = async (req, res) => {
             data: role
         });
     } catch (error) {
-        return res.status(error.status || 500).json({
-            message: error.message || "Internal server error"
-        });
+        return next(error);
     }
 };
 
-export const deleteRoleController = async (req, res) => {
+export const deleteRoleController = async (req, res, next) => {
     try {
         const role = await deleteRoleById(req.params.id);
         return res.status(200).json({
@@ -56,8 +49,6 @@ export const deleteRoleController = async (req, res) => {
             data: role
         });
     } catch (error) {
-        return res.status(error.status || 500).json({
-            message: error.message || "Internal server error"
-        });
+        return next(error);
     }
 };

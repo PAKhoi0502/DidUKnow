@@ -2,6 +2,8 @@ import User from "./user.model.js";
 import { comparePassword, hashPassword } from "../../utils/hashPassword.js";
 import { generateAccessToken } from "../../utils/generateToken.js";
 import Role from "../role/role.model.js";
+import UserRoleAudit from "./userRoleAudit.model.js";
+import { createHttpError } from "../../utils/httpError.js";
 
 const mapUserResponse = (userDoc) => {
     return {
@@ -33,9 +35,7 @@ export const createUser = async (payload) => {
     }).lean();
 
     if (existed) {
-        const error = new Error("Username or email already exists");
-        error.status = 409;
-        throw error;
+        throw createHttpError(409, "Username or email already exists");
     }
 
     const defaultUserRole = await Role.findOne({
@@ -44,9 +44,7 @@ export const createUser = async (payload) => {
     }).lean();
 
     if (!defaultUserRole) {
-        const error = new Error("Default 'User' role is not configured");
-        error.status = 500;
-        throw error;
+        throw createHttpError(500, "Default 'User' role is not configured");
     }
 
     const user = await User.create({
@@ -65,16 +63,12 @@ export const loginUser = async (payload) => {
     const user = await User.findOne({ email: payload.email });
 
     if (!user) {
-        const error = new Error("Invalid email or password");
-        error.status = 401;
-        throw error;
+        throw createHttpError(401, "Invalid email or password");
     }
 
     const isPasswordValid = await comparePassword(payload.password, user.password_hash);
     if (!isPasswordValid) {
-        const error = new Error("Invalid email or password");
-        error.status = 401;
-        throw error;
+        throw createHttpError(401, "Invalid email or password");
     }
 
     user.last_login_at = new Date();
@@ -98,9 +92,7 @@ export const updateUserLanguage = async (userId, language) => {
     );
 
     if (!user) {
-        const error = new Error("User not found");
-        error.status = 404;
-        throw error;
+        throw createHttpError(404, "User not found");
     }
 
     return mapUserResponse(user.toObject());
@@ -114,9 +106,7 @@ export const updateUserById = async (userId, payload) => {
         }).lean();
 
         if (existedUsername) {
-            const error = new Error("Username already exists");
-            error.status = 409;
-            throw error;
+            throw createHttpError(409, "Username already exists");
         }
     }
 
@@ -127,9 +117,7 @@ export const updateUserById = async (userId, payload) => {
         }).lean();
 
         if (existedEmail) {
-            const error = new Error("Email already exists");
-            error.status = 409;
-            throw error;
+            throw createHttpError(409, "Email already exists");
         }
     }
 
@@ -147,21 +135,95 @@ export const updateUserById = async (userId, payload) => {
     );
 
     if (!user) {
-        const error = new Error("User not found");
-        error.status = 404;
-        throw error;
+        throw createHttpError(404, "User not found");
     }
 
     return mapUserResponse(user.toObject());
+};
+
+export const updateUserRoleById = async (userId, roleId, auditContext = {}) => {
+    const actorUserId = auditContext.actor_user_id;
+    const ipAddress = auditContext.ip_address ?? null;
+    const userAgent = auditContext.user_agent ?? null;
+    const reason = auditContext.reason ?? null;
+
+    const createAuditLog = async ({
+        status,
+        failureReason = null,
+        targetUserId = null,
+        beforeRoleId = null,
+        afterRoleId = null
+    }) => {
+        if (!actorUserId) {
+            return null;
+        }
+
+        return UserRoleAudit.create({
+            actor_user_id: actorUserId,
+            target_user_id: targetUserId,
+            before_role_id: beforeRoleId,
+            after_role_id: afterRoleId,
+            reason,
+            status,
+            failure_reason: failureReason,
+            ip_address: ipAddress,
+            user_agent: userAgent
+        });
+    };
+
+    try {
+        const role = await Role.findById(roleId).select("_id").lean();
+        if (!role) {
+            await createAuditLog({
+                status: "failed",
+                failureReason: "role_id does not exist"
+            });
+            throw createHttpError(400, "role_id does not exist");
+        }
+
+        const user = await User.findById(userId).select("_id role_id");
+        if (!user) {
+            await createAuditLog({
+                status: "failed",
+                failureReason: "User not found"
+            });
+            throw createHttpError(404, "User not found");
+        }
+
+        const beforeRoleId = user.role_id;
+        user.role_id = roleId;
+        await user.save();
+
+        const auditLog = await createAuditLog({
+            status: "success",
+            targetUserId: user._id,
+            beforeRoleId,
+            afterRoleId: roleId
+        });
+
+        return {
+            user: mapUserResponse(user.toObject()),
+            audit: {
+                event_id: auditLog?._id?.toString() ?? null,
+                status: "success"
+            }
+        };
+    } catch (error) {
+        if (!error?.status) {
+            await createAuditLog({
+                status: "failed",
+                failureReason: error.message || "Unknown error"
+            });
+        }
+        throw error;
+    }
 };
 
 export const deleteUserById = async (userId) => {
     const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
-        const error = new Error("User not found");
-        error.status = 404;
-        throw error;
+        throw createHttpError(404, "User not found");
     }
 
     return mapUserResponse(deletedUser.toObject());
