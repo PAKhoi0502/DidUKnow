@@ -9,7 +9,7 @@ export const getRolesController = async (req, res, next) => {
     try {
         const roles = await getAllRoles();
         return res.status(200).json({
-            message: "Get roles successfully",
+            message: "roles.get_success",
             data: roles
         });
     } catch (error) {
@@ -21,7 +21,7 @@ export const createRoleController = async (req, res, next) => {
     try {
         const role = await createRole(req.validatedBody);
         return res.status(201).json({
-            message: "Create role successfully",
+            message: "roles.create_success",
             data: role
         });
     } catch (error) {
@@ -33,7 +33,7 @@ export const updateRoleController = async (req, res, next) => {
     try {
         const role = await updateRoleById(req.params.id, req.validatedBody);
         return res.status(200).json({
-            message: "Update role successfully",
+            message: "roles.update_success",
             data: role
         });
     } catch (error) {
@@ -45,7 +45,7 @@ export const deleteRoleController = async (req, res, next) => {
     try {
         const role = await deleteRoleById(req.params.id);
         return res.status(200).json({
-            message: "Delete role successfully",
+            message: "roles.delete_success",
             data: role
         });
     } catch (error) {

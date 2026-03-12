@@ -12,7 +12,7 @@ export const getUsersController = async (req, res, next) => {
     try {
         const users = await getAllUsers();
         return res.status(200).json({
-            message: "Get users successfully",
+            message: "users.get_success",
             data: users
         });
     } catch (error) {
@@ -24,7 +24,7 @@ export const createUserController = async (req, res, next) => {
     try {
         const user = await createUser(req.validatedBody);
         return res.status(201).json({
-            message: "Create user successfully",
+            message: "users.create_success",
             data: user
         });
     } catch (error) {
@@ -36,7 +36,7 @@ export const loginUserController = async (req, res, next) => {
     try {
         const loginData = await loginUser(req.validatedBody);
         return res.status(200).json({
-            message: "Login successfully",
+            message: "auth.login_success",
             data: loginData
         });
     } catch (error) {
@@ -48,7 +48,7 @@ export const updateMyLanguageController = async (req, res, next) => {
     try {
         const user = await updateUserLanguage(req.user.id, req.validatedBody.language);
         return res.status(200).json({
-            message: "Update language successfully",
+            message: "users.update_language_success",
             data: user
         });
     } catch (error) {
@@ -60,7 +60,7 @@ export const updateUserController = async (req, res, next) => {
     try {
         const user = await updateUserById(req.params.id, req.validatedBody);
         return res.status(200).json({
-            message: "Update user successfully",
+            message: "users.update_success",
             data: user
         });
     } catch (error) {
@@ -81,7 +81,7 @@ export const updateUserRoleController = async (req, res, next) => {
             }
         );
         return res.status(200).json({
-            message: "Update user role successfully",
+            message: "users.update_role_success",
             data: result.user,
             audit: result.audit
         });
@@ -94,7 +94,7 @@ export const deleteUserController = async (req, res, next) => {
     try {
         const user = await deleteUserById(req.params.id);
         return res.status(200).json({
-            message: "Delete user successfully",
+            message: "users.delete_success",
             data: user
         });
     } catch (error) {

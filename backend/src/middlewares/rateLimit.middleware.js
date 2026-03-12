@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
 const buildRateLimitResponse = (message) => {
     return {
@@ -50,7 +50,7 @@ export const loginAccountRateLimit = rateLimit({
         if (typeof email === "string" && email.trim().length > 0) {
             return `login_email:${email.trim().toLowerCase()}`;
         }
-        return `login_ip_fallback:${req.ip}`;
+        return `login_ip_fallback:${ipKeyGenerator(req.ip)}`;
     },
     message: buildRateLimitResponse("Too many login attempts for this account, please try again later.")
 });

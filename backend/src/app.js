@@ -3,10 +3,14 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 import routes from "./routes/index.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
+import { resolveLanguage } from "./middlewares/language.middleware.js";
+import { attachMessageText } from "./middlewares/responseI18n.middleware.js";
 
 const app = express();
 
 app.use(express.json());
+app.use(resolveLanguage);
+app.use(attachMessageText);
 app.use(
     "/api-docs",
     swaggerUi.serve,
@@ -15,7 +19,6 @@ app.use(
         customSiteTitle: "DidUKnow API Docs",
         swaggerOptions: {
             docExpansion: "list",
-            tagsSorter: "alpha",
             operationsSorter: "alpha"
         }
     })

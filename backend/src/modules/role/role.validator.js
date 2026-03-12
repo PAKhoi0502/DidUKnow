@@ -18,7 +18,7 @@ export const validateCreateRole = (req, res, next) => {
 
     if (errors.length > 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors
         });
     }
@@ -37,7 +37,7 @@ export const validateRoleIdParam = (req, res, next) => {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: ["id must be a valid ObjectId"]
         });
     }
@@ -52,7 +52,7 @@ export const validateUpdateRole = (req, res, next) => {
 
     if (inputKeys.length === 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: ["At least one field is required for update"]
         });
     }
@@ -60,7 +60,7 @@ export const validateUpdateRole = (req, res, next) => {
     const invalidFields = inputKeys.filter((key) => !allowedFields.includes(key));
     if (invalidFields.length > 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: [`Invalid fields: ${invalidFields.join(", ")}`]
         });
     }
@@ -82,7 +82,7 @@ export const validateUpdateRole = (req, res, next) => {
 
     if (errors.length > 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors
         });
     }

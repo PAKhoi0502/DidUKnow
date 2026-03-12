@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { SUPPORTED_LANGUAGES } from "../../config/i18n.js";
 
 const userSchema = new mongoose.Schema(
     {
@@ -29,7 +30,7 @@ const userSchema = new mongoose.Schema(
 
         language: {
             type: String,
-            enum: ["vi", "en"],
+            enum: SUPPORTED_LANGUAGES,
             default: "en"
         },
 

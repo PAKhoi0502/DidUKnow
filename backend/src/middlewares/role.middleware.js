@@ -6,7 +6,7 @@ export const authorizeRoles = (...allowedRoles) => {
     return async (req, res, next) => {
         if (!req.user?.role_id) {
             return res.status(401).json({
-                message: "Unauthorized"
+                message: "errors.unauthorized"
             });
         }
 
@@ -17,20 +17,20 @@ export const authorizeRoles = (...allowedRoles) => {
 
             if (!role) {
                 return res.status(403).json({
-                    message: "Forbidden"
+                    message: "errors.forbidden"
                 });
             }
 
             if (role.status !== "active") {
                 return res.status(403).json({
-                    message: "Role is not active"
+                    message: "errors.role_not_active"
                 });
             }
 
             const normalizedRoleName = String(role.name || "").toLowerCase();
             if (!normalizedAllowedRoles.includes(normalizedRoleName)) {
                 return res.status(403).json({
-                    message: "Forbidden"
+                    message: "errors.forbidden"
                 });
             }
 
@@ -38,7 +38,7 @@ export const authorizeRoles = (...allowedRoles) => {
             return next();
         } catch (error) {
             return res.status(500).json({
-                message: "Internal server error",
+                message: "errors.internal_server_error",
                 error: error.message
             });
         }

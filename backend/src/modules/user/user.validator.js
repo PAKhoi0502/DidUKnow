@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 import Role from "../role/role.model.js";
+import { SUPPORTED_LANGUAGES } from "../../config/i18n.js";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const allowedLanguages = ["vi", "en"];
+const allowedLanguages = SUPPORTED_LANGUAGES;
 
 export const validateCreateUser = async (req, res, next) => {
     const {
@@ -37,7 +38,7 @@ export const validateCreateUser = async (req, res, next) => {
 
     if (errors.length > 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors
         });
     }
@@ -67,7 +68,7 @@ export const validateLoginUser = (req, res, next) => {
 
     if (errors.length > 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors
         });
     }
@@ -85,7 +86,7 @@ export const validateUpdateLanguage = (req, res, next) => {
 
     if (!language || typeof language !== "string" || !allowedLanguages.includes(language)) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: ["language must be one of: vi, en"]
         });
     }
@@ -99,7 +100,7 @@ export const validateUserIdParam = (req, res, next) => {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: ["id must be a valid ObjectId"]
         });
     }
@@ -114,7 +115,7 @@ export const validateUpdateUser = async (req, res, next) => {
 
     if (inputKeys.length === 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: ["At least one field is required for update"]
         });
     }
@@ -122,7 +123,7 @@ export const validateUpdateUser = async (req, res, next) => {
     const invalidFields = inputKeys.filter((key) => !allowedFields.includes(key));
     if (invalidFields.length > 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: [`Invalid fields: ${invalidFields.join(", ")}`]
         });
     }
@@ -164,7 +165,7 @@ export const validateUpdateUser = async (req, res, next) => {
 
     if (errors.length > 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors
         });
     }
@@ -188,21 +189,21 @@ export const validateUpdateUserRole = async (req, res, next) => {
 
     if (invalidFields.length > 0) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: [`Invalid fields: ${invalidFields.join(", ")}`]
         });
     }
 
     if (!roleId || typeof roleId !== "string" || !mongoose.Types.ObjectId.isValid(roleId)) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: ["role_id must be a valid ObjectId"]
         });
     }
 
     if (reason !== undefined && (typeof reason !== "string" || reason.trim().length < 3)) {
         return res.status(400).json({
-            message: "Validation failed",
+            message: "errors.validation_failed",
             errors: ["reason must be at least 3 characters"]
         });
     }
@@ -211,13 +212,13 @@ export const validateUpdateUserRole = async (req, res, next) => {
         const roleExists = await Role.exists({ _id: roleId });
         if (!roleExists) {
             return res.status(400).json({
-                message: "Validation failed",
+                message: "errors.validation_failed",
                 errors: ["role_id does not exist"]
             });
         }
     } catch (error) {
         return res.status(500).json({
-            message: "Internal server error",
+            message: "errors.internal_server_error",
             error: error.message
         });
     }

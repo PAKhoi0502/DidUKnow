@@ -34,7 +34,7 @@ const run = async () => {
                     status: "active"
                 }
             },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: "after" }
         ).lean();
 
         console.log("Seed editor completed", {

@@ -49,7 +49,7 @@ export const updateRoleById = async (roleId, payload) => {
     const role = await Role.findByIdAndUpdate(
         roleId,
         payload,
-        { new: true }
+        { returnDocument: "after" }
     );
 
     if (!role) {

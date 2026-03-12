@@ -88,7 +88,7 @@ export const updateUserLanguage = async (userId, language) => {
     const user = await User.findByIdAndUpdate(
         userId,
         { language },
-        { new: true }
+        { returnDocument: "after" }
     );
 
     if (!user) {
@@ -131,7 +131,7 @@ export const updateUserById = async (userId, payload) => {
     const user = await User.findByIdAndUpdate(
         userId,
         updatePayload,
-        { new: true }
+        { returnDocument: "after" }
     );
 
     if (!user) {
