@@ -1,0 +1,466 @@
+import mongoose from "mongoose";
+import Fact from "./fact.model.js";
+import FactTranslation from "./factTranslation.model.js";
+import Role from "../role/role.model.js";
+import { createHttpError } from "../../utils/httpError.js";
+import { DEFAULT_LANGUAGE, normalizeLanguage } from "../../config/i18n.js";
+
+const FACT_STATUS = {
+    DRAFT: "draft",
+    PUBLISHED: "published"
+};
+
+const FACT_ALLOWED_STATUSES = [FACT_STATUS.DRAFT, FACT_STATUS.PUBLISHED];
+const LIST_DEFAULT_PAGE = 1;
+const LIST_DEFAULT_LIMIT = 10;
+const LIST_MAX_LIMIT = 50;
+
+export const mapFactResponse = (factDoc) => {
+    return {
+        id: factDoc._id,
+        title: factDoc.title,
+        short_fact: factDoc.short_fact,
+        content: factDoc.content,
+        category_id: factDoc.category_id,
+        status: factDoc.status,
+        created_by: factDoc.created_by,
+        created_at: factDoc.created_at,
+        updated_at: factDoc.updated_at
+    };
+};
+
+const mapFactTranslationResponse = (translationDoc) => {
+    return {
+        id: translationDoc._id,
+        fact_id: translationDoc.fact_id,
+        language: translationDoc.language,
+        title: translationDoc.title,
+        short_fact: translationDoc.short_fact,
+        content: translationDoc.content,
+        created_at: translationDoc.created_at,
+        updated_at: translationDoc.updated_at
+    };
+};
+
+const getPreferredLanguage = (language) => {
+    return normalizeLanguage(language) ?? DEFAULT_LANGUAGE;
+};
+
+const applyFactTranslation = (factDoc, translationDoc) => {
+    if (!translationDoc) {
+        return factDoc;
+    }
+
+    return {
+        ...factDoc,
+        title: translationDoc.title,
+        short_fact: translationDoc.short_fact,
+        content: translationDoc.content
+    };
+};
+
+const hydrateFactTranslations = async (factDocs, language) => {
+    if (!Array.isArray(factDocs) || factDocs.length === 0) {
+        return [];
+    }
+
+    const preferredLanguage = getPreferredLanguage(language);
+    const factIds = factDocs.map((fact) => fact._id);
+    const translations = await FactTranslation.find({
+        fact_id: { $in: factIds },
+        language: { $in: [preferredLanguage, DEFAULT_LANGUAGE] }
+    }).lean();
+
+    const translationByFactId = new Map();
+    for (const translation of translations) {
+        const key = translation.fact_id.toString();
+        const existing = translationByFactId.get(key);
+
+        if (!existing) {
+            translationByFactId.set(key, translation);
+            continue;
+        }
+
+        if (existing.language !== preferredLanguage && translation.language === preferredLanguage) {
+            translationByFactId.set(key, translation);
+        }
+    }
+
+    return factDocs.map((fact) => {
+        const translation = translationByFactId.get(fact._id.toString());
+        return applyFactTranslation(fact, translation);
+    });
+};
+
+const upsertDefaultFactTranslation = async (factDoc) => {
+    await FactTranslation.findOneAndUpdate(
+        {
+            fact_id: factDoc._id,
+            language: DEFAULT_LANGUAGE
+        },
+        {
+            $set: {
+                title: factDoc.title,
+                short_fact: factDoc.short_fact,
+                content: factDoc.content
+            }
+        },
+        {
+            upsert: true,
+            returnDocument: "after"
+        }
+    );
+};
+
+const isValidObjectId = (value) => {
+    return typeof value === "string" && mongoose.Types.ObjectId.isValid(value);
+};
+
+const parsePositiveInt = (rawValue, fallback) => {
+    const parsed = Number.parseInt(rawValue, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        return fallback;
+    }
+    return parsed;
+};
+
+const normalizePagination = (query = {}) => {
+    const page = parsePositiveInt(query.page, LIST_DEFAULT_PAGE);
+    const requestedLimit = parsePositiveInt(query.limit, LIST_DEFAULT_LIMIT);
+    const limit = Math.min(requestedLimit, LIST_MAX_LIMIT);
+    const skip = (page - 1) * limit;
+
+    return { page, limit, skip };
+};
+
+const getActorRoleName = async (actor) => {
+    if (!actor) {
+        return null;
+    }
+
+    if (typeof actor.role_name === "string" && actor.role_name.trim().length > 0) {
+        return actor.role_name.trim().toLowerCase();
+    }
+
+    if (!isValidObjectId(actor.role_id)) {
+        return null;
+    }
+
+    const role = await Role.findById(actor.role_id).select("name status").lean();
+    if (!role || role.status !== "active") {
+        return null;
+    }
+
+    return String(role.name || "").trim().toLowerCase();
+};
+
+const isActorAdmin = async (actor) => {
+    const roleName = await getActorRoleName(actor);
+    return roleName === "admin";
+};
+
+const isActorAdminOrEditor = async (actor) => {
+    const roleName = await getActorRoleName(actor);
+    return roleName === "admin" || roleName === "editor";
+};
+
+const isOwner = (factDoc, actor) => {
+    if (!actor?.id || !factDoc?.created_by) {
+        return false;
+    }
+    return factDoc.created_by.toString() === String(actor.id);
+};
+
+const ensureFactId = (factId) => {
+    if (!isValidObjectId(factId)) {
+        throw createHttpError(400, "fact_id must be a valid ObjectId");
+    }
+};
+
+const ensureAuthenticatedActor = (actor) => {
+    if (!actor?.id) {
+        throw createHttpError(401, "Unauthorized");
+    }
+};
+
+export const createFact = async (payload, actorUserId) => {
+    if (!isValidObjectId(actorUserId)) {
+        throw createHttpError(401, "Unauthorized");
+    }
+
+    const fact = await Fact.create({
+        title: payload.title,
+        short_fact: payload.short_fact,
+        content: payload.content,
+        category_id: payload.category_id,
+        created_by: actorUserId,
+        status: FACT_STATUS.DRAFT
+    });
+
+    await upsertDefaultFactTranslation(fact);
+
+    return mapFactResponse(fact.toObject());
+};
+
+export const getFactList = async (query = {}, actor = null, language = DEFAULT_LANGUAGE) => {
+    const { page, limit, skip } = normalizePagination(query);
+    const canFilterStatus = await isActorAdminOrEditor(actor);
+    const filter = {};
+
+    if (canFilterStatus) {
+        if (query.status !== undefined) {
+            if (!FACT_ALLOWED_STATUSES.includes(query.status)) {
+                throw createHttpError(400, "status must be one of: draft, published");
+            }
+            filter.status = query.status;
+        }
+    } else {
+        filter.status = FACT_STATUS.PUBLISHED;
+    }
+
+    if (query.category_id !== undefined) {
+        if (!isValidObjectId(query.category_id)) {
+            throw createHttpError(400, "category_id must be a valid ObjectId");
+        }
+        filter.category_id = query.category_id;
+    }
+
+    const searchValue = typeof query.search === "string" ? query.search.trim() : "";
+    if (searchValue.length > 0) {
+        filter.$text = { $search: searchValue };
+    }
+
+    const sort = searchValue.length > 0
+        ? { score: { $meta: "textScore" }, created_at: -1 }
+        : { created_at: -1 };
+
+    const [items, total] = await Promise.all([
+        Fact.find(filter)
+            .select(searchValue.length > 0 ? { score: { $meta: "textScore" } } : {})
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        Fact.countDocuments(filter)
+    ]);
+
+    const localizedItems = await hydrateFactTranslations(items, language);
+
+    return {
+        items: localizedItems.map(mapFactResponse),
+        pagination: {
+            page,
+            limit,
+            total,
+            total_pages: Math.ceil(total / limit)
+        }
+    };
+};
+
+export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE) => {
+    const filter = {
+        status: FACT_STATUS.PUBLISHED
+    };
+
+    if (query.category_id !== undefined) {
+        if (!isValidObjectId(query.category_id)) {
+            throw createHttpError(400, "category_id must be a valid ObjectId");
+        }
+        filter.category_id = new mongoose.Types.ObjectId(query.category_id);
+    }
+
+    if (query.exclude_id !== undefined) {
+        if (!isValidObjectId(query.exclude_id)) {
+            throw createHttpError(400, "exclude_id must be a valid ObjectId");
+        }
+        filter._id = {
+            $ne: new mongoose.Types.ObjectId(query.exclude_id)
+        };
+    }
+
+    const [fact] = await Fact.aggregate([
+        { $match: filter },
+        { $sample: { size: 1 } }
+    ]);
+
+    if (!fact) {
+        throw createHttpError(404, "Fact not found");
+    }
+
+    const [localizedFact] = await hydrateFactTranslations([fact], language);
+    return mapFactResponse(localizedFact);
+};
+
+export const getFactById = async (factId, actor = null, language = DEFAULT_LANGUAGE) => {
+    ensureFactId(factId);
+
+    const fact = await Fact.findById(factId).lean();
+    if (!fact) {
+        throw createHttpError(404, "Fact not found");
+    }
+
+    if (fact.status === FACT_STATUS.PUBLISHED) {
+        const [localizedFact] = await hydrateFactTranslations([fact], language);
+        return mapFactResponse(localizedFact);
+    }
+
+    if (!actor?.id) {
+        throw createHttpError(404, "Fact not found");
+    }
+
+    const canViewDraft = isOwner(fact, actor) || await isActorAdminOrEditor(actor);
+    if (!canViewDraft) {
+        throw createHttpError(403, "Forbidden");
+    }
+
+    const [localizedFact] = await hydrateFactTranslations([fact], language);
+    return mapFactResponse(localizedFact);
+};
+
+export const updateFactById = async (factId, payload, actor) => {
+    ensureFactId(factId);
+    ensureAuthenticatedActor(actor);
+
+    if (payload.status !== undefined) {
+        throw createHttpError(400, "status cannot be updated in this endpoint");
+    }
+
+    if (payload.created_by !== undefined) {
+        throw createHttpError(400, "created_by cannot be updated");
+    }
+
+    const allowedFields = ["title", "short_fact", "content", "category_id"];
+    const payloadKeys = Object.keys(payload || {});
+    const invalidFields = payloadKeys.filter((key) => !allowedFields.includes(key));
+    if (invalidFields.length > 0) {
+        throw createHttpError(400, `Invalid fields: ${invalidFields.join(", ")}`);
+    }
+
+    if (payloadKeys.length === 0) {
+        throw createHttpError(400, "At least one field is required for update");
+    }
+
+    if (payload.category_id !== undefined && !isValidObjectId(payload.category_id)) {
+        throw createHttpError(400, "category_id must be a valid ObjectId");
+    }
+
+    const fact = await Fact.findById(factId);
+    if (!fact) {
+        throw createHttpError(404, "Fact not found");
+    }
+
+    const canUpdate = isOwner(fact, actor) || await isActorAdmin(actor);
+    if (!canUpdate) {
+        throw createHttpError(403, "Forbidden");
+    }
+
+    if (payload.title !== undefined) fact.title = payload.title;
+    if (payload.short_fact !== undefined) fact.short_fact = payload.short_fact;
+    if (payload.content !== undefined) fact.content = payload.content;
+    if (payload.category_id !== undefined) fact.category_id = payload.category_id;
+
+    await fact.save();
+    await upsertDefaultFactTranslation(fact);
+    return mapFactResponse(fact.toObject());
+};
+
+export const updateFactStatusById = async (factId, status, actor, reason = null) => {
+    ensureFactId(factId);
+    ensureAuthenticatedActor(actor);
+
+    if (!FACT_ALLOWED_STATUSES.includes(status)) {
+        throw createHttpError(400, "status must be one of: draft, published");
+    }
+
+    if (reason !== null && reason !== undefined) {
+        if (typeof reason !== "string" || reason.trim().length < 3) {
+            throw createHttpError(400, "reason must be at least 3 characters");
+        }
+    }
+
+    const canChangeStatus = await isActorAdmin(actor);
+    if (!canChangeStatus) {
+        throw createHttpError(403, "Forbidden");
+    }
+
+    const fact = await Fact.findByIdAndUpdate(
+        factId,
+        { status },
+        { returnDocument: "after" }
+    );
+
+    if (!fact) {
+        throw createHttpError(404, "Fact not found");
+    }
+
+    return mapFactResponse(fact.toObject());
+};
+
+export const deleteFactById = async (factId, actor) => {
+    ensureFactId(factId);
+    ensureAuthenticatedActor(actor);
+
+    const fact = await Fact.findById(factId);
+    if (!fact) {
+        throw createHttpError(404, "Fact not found");
+    }
+
+    const canDelete = isOwner(fact, actor) || await isActorAdmin(actor);
+    if (!canDelete) {
+        throw createHttpError(403, "Forbidden");
+    }
+
+    await Promise.all([
+        fact.deleteOne(),
+        FactTranslation.deleteMany({ fact_id: fact._id })
+    ]);
+
+    return mapFactResponse(fact.toObject());
+};
+
+export const upsertFactTranslationById = async (factId, language, payload, actor) => {
+    ensureFactId(factId);
+    ensureAuthenticatedActor(actor);
+
+    const normalizedLanguage = normalizeLanguage(language);
+    if (!normalizedLanguage) {
+        throw createHttpError(400, "language must be one of: vi, en");
+    }
+
+    const fact = await Fact.findById(factId);
+    if (!fact) {
+        throw createHttpError(404, "Fact not found");
+    }
+
+    const canUpdate = isOwner(fact, actor) || await isActorAdmin(actor);
+    if (!canUpdate) {
+        throw createHttpError(403, "Forbidden");
+    }
+
+    if (normalizedLanguage === DEFAULT_LANGUAGE) {
+        fact.title = payload.title;
+        fact.short_fact = payload.short_fact;
+        fact.content = payload.content;
+        await fact.save();
+    }
+
+    const translation = await FactTranslation.findOneAndUpdate(
+        {
+            fact_id: fact._id,
+            language: normalizedLanguage
+        },
+        {
+            $set: {
+                title: payload.title,
+                short_fact: payload.short_fact,
+                content: payload.content
+            }
+        },
+        {
+            upsert: true,
+            returnDocument: "after"
+        }
+    ).lean();
+
+    return mapFactTranslationResponse(translation);
+};
