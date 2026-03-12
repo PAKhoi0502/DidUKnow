@@ -7,9 +7,13 @@
     "dev": "node src/server.js",
     "start": "node src/server.js",
     "seed:roles": "node src/scripts/seedRole.js",
+    "seed:categories": "node src/scripts/seedCategory.js",
+    "seed:category-translations": "node src/scripts/seedCategoryTranslations.js",
     "seed:users": "node src/scripts/seedUser.js",
     "seed:editor": "node src/scripts/seedEditor.js",
-    "seed:all": "npm run seed:roles && npm run seed:users",
+    "seed:fact-translations": "node src/scripts/seedFactTranslations.js",
+    "seed:translations": "npm run seed:category-translations && npm run seed:fact-translations",
+    "seed:all": "npm run seed:roles && npm run seed:categories && npm run seed:users",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -18,12 +22,14 @@
   "description": "",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.9.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.4",
+    "multer": "^2.1.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   }
