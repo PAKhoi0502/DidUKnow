@@ -1,8 +1,8 @@
+import { toMessageKey } from "../config/i18n.js";
+
 export const errorMiddleware = (error, req, res, next) => {
     const status = Number.isInteger(error?.status) ? error.status : 500;
-    const message = status >= 500
-        ? "Internal server error"
-        : (error?.message || "Request failed");
+    const message = toMessageKey(error?.message, status);
 
     const response = { message };
 
