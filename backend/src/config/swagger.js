@@ -51,6 +51,14 @@ const options = {
                 description: "Comment APIs"
             },
             {
+                name: "BookmarkCollection",
+                description: "Bookmark collections APIs"
+            },
+            {
+                name: "CollectionFact",
+                description: "Collection facts APIs"
+            },
+            {
                 name: "Media",
                 description: "Media upload APIs"
             },
@@ -664,6 +672,129 @@ const options = {
                         }
                     }
                 },
+                CreateBookmarkCollectionInput: {
+                    type: "object",
+                    required: ["name"],
+                    properties: {
+                        name: { type: "string", minLength: 2, maxLength: 80, example: "Science Picks" }
+                    }
+                },
+                UpdateBookmarkCollectionInput: {
+                    type: "object",
+                    required: ["name"],
+                    properties: {
+                        name: { type: "string", minLength: 2, maxLength: 80, example: "My Updated Collection" }
+                    }
+                },
+                BookmarkCollectionResponse: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        user_id: { type: "string", example: "67ceca911fdb988f26fcbf96" },
+                        name: { type: "string", example: "Science Picks" },
+                        created_at: { type: "string", format: "date-time", example: "2026-03-12T08:30:00.000Z" },
+                        updated_at: { type: "string", format: "date-time", example: "2026-03-12T08:35:00.000Z" }
+                    }
+                },
+                BookmarkCollectionListPagination: {
+                    type: "object",
+                    properties: {
+                        page: { type: "integer", example: 1 },
+                        limit: { type: "integer", example: 10 },
+                        total: { type: "integer", example: 24 },
+                        total_pages: { type: "integer", example: 3 }
+                    }
+                },
+                BookmarkCollectionListDataResponse: {
+                    type: "object",
+                    properties: {
+                        items: {
+                            type: "array",
+                            items: {
+                                $ref: "#/components/schemas/BookmarkCollectionResponse"
+                            }
+                        },
+                        pagination: {
+                            $ref: "#/components/schemas/BookmarkCollectionListPagination"
+                        }
+                    }
+                },
+                BookmarkCollectionItemApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Create bookmark collection successfully" },
+                        data: {
+                            $ref: "#/components/schemas/BookmarkCollectionResponse"
+                        }
+                    }
+                },
+                BookmarkCollectionListApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get bookmark collections successfully" },
+                        data: {
+                            $ref: "#/components/schemas/BookmarkCollectionListDataResponse"
+                        }
+                    }
+                },
+                CreateCollectionFactInput: {
+                    type: "object",
+                    required: ["collection_id", "fact_id"],
+                    properties: {
+                        collection_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf96" }
+                    }
+                },
+                CollectionFactResponse: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "67ceca911fdb988f26fcbf97" },
+                        collection_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf96" },
+                        created_at: { type: "string", format: "date-time", example: "2026-03-12T08:40:00.000Z" }
+                    }
+                },
+                CollectionFactListPagination: {
+                    type: "object",
+                    properties: {
+                        page: { type: "integer", example: 1 },
+                        limit: { type: "integer", example: 10 },
+                        total: { type: "integer", example: 24 },
+                        total_pages: { type: "integer", example: 3 }
+                    }
+                },
+                CollectionFactListDataResponse: {
+                    type: "object",
+                    properties: {
+                        items: {
+                            type: "array",
+                            items: {
+                                $ref: "#/components/schemas/CollectionFactResponse"
+                            }
+                        },
+                        pagination: {
+                            $ref: "#/components/schemas/CollectionFactListPagination"
+                        }
+                    }
+                },
+                CollectionFactItemApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Add fact to collection successfully" },
+                        data: {
+                            $ref: "#/components/schemas/CollectionFactResponse"
+                        }
+                    }
+                },
+                CollectionFactListApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get collection facts successfully" },
+                        data: {
+                            $ref: "#/components/schemas/CollectionFactListDataResponse"
+                        }
+                    }
+                },
                 CreateCategoryInput: {
                     type: "object",
                     required: ["name"],
@@ -927,6 +1058,36 @@ const options = {
                         }
                     }
                 },
+                CreateBookmarkCollectionRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/CreateBookmarkCollectionInput"
+                            }
+                        }
+                    }
+                },
+                UpdateBookmarkCollectionRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/UpdateBookmarkCollectionInput"
+                            }
+                        }
+                    }
+                },
+                CreateCollectionFactRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/CreateCollectionFactInput"
+                            }
+                        }
+                    }
+                },
                 CreateCategoryRequestBody: {
                     required: true,
                     content: {
@@ -988,6 +1149,12 @@ const options = {
                 },
                 ReportFactDuplicateResponse: {
                     description: "user already has an open report for this fact"
+                },
+                BookmarkCollectionDuplicateResponse: {
+                    description: "bookmark collection name already exists for this user"
+                },
+                CollectionFactDuplicateResponse: {
+                    description: "fact already exists in this collection"
                 },
                 RoleInUseResponse: {
                     description: "cannot delete role because it is being used by users"

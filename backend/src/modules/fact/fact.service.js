@@ -6,6 +6,7 @@ import Favourite from "../favourite/favourite.model.js";
 import { recordFactView } from "../factView/factView.service.js";
 import { deleteReportFactsByFactId } from "../reportFact/reportFact.service.js";
 import { deleteCommentsByFactId } from "../comment/comment.service.js";
+import { deleteCollectionFactsByFactId } from "../collectionFact/collectionFact.service.js";
 import Role from "../role/role.model.js";
 import { createHttpError } from "../../utils/httpError.js";
 import { DEFAULT_LANGUAGE, normalizeLanguage } from "../../config/i18n.js";
@@ -659,7 +660,8 @@ export const deleteFactById = async (factId, actor) => {
         FactTranslation.deleteMany({ fact_id: fact._id }),
         Favourite.deleteMany({ fact_id: fact._id }),
         deleteReportFactsByFactId(String(fact._id)),
-        deleteCommentsByFactId(String(fact._id))
+        deleteCommentsByFactId(String(fact._id)),
+        deleteCollectionFactsByFactId(String(fact._id))
     ]);
 
     return mapFactResponse(fact.toObject());
