@@ -39,6 +39,14 @@ const options = {
                 description: "Favourite facts APIs"
             },
             {
+                name: "FactView",
+                description: "Fact views analytics APIs"
+            },
+            {
+                name: "ReportFact",
+                description: "Report incorrect fact APIs"
+            },
+            {
                 name: "Media",
                 description: "Media upload APIs"
             },
@@ -474,6 +482,118 @@ const options = {
                         }
                     }
                 },
+                FactViewByDate: {
+                    type: "object",
+                    properties: {
+                        date: { type: "string", example: "2026-03-13" },
+                        views: { type: "integer", example: 128 }
+                    }
+                },
+                FactViewSummaryResponse: {
+                    type: "object",
+                    properties: {
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        total_views: { type: "integer", example: 500 },
+                        unique_users: { type: "integer", example: 120 },
+                        unique_guests: { type: "integer", example: 80 },
+                        unique_viewers: { type: "integer", example: 200 },
+                        by_date: {
+                            type: "array",
+                            items: {
+                                $ref: "#/components/schemas/FactViewByDate"
+                            }
+                        }
+                    }
+                },
+                FactViewSummaryApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get fact view summary successfully" },
+                        data: {
+                            $ref: "#/components/schemas/FactViewSummaryResponse"
+                        }
+                    }
+                },
+                CreateReportFactInput: {
+                    type: "object",
+                    required: ["fact_id", "reason"],
+                    properties: {
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        reason: { type: "string", minLength: 10, maxLength: 1000, example: "This fact has incorrect year information." }
+                    }
+                },
+                UpdateReportFactStatusInput: {
+                    type: "object",
+                    required: ["status"],
+                    properties: {
+                        status: {
+                            type: "string",
+                            enum: ["pending", "reviewing", "resolved", "rejected"],
+                            example: "resolved"
+                        },
+                        resolution_note: {
+                            type: "string",
+                            nullable: true,
+                            maxLength: 1000,
+                            example: "Verified and corrected the fact content."
+                        }
+                    }
+                },
+                ReportFactResponse: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        user_id: { type: "string", example: "67ceca911fdb988f26fcbf96" },
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf97" },
+                        reason: { type: "string", example: "Incorrect source for this statement." },
+                        status: { type: "string", enum: ["pending", "reviewing", "resolved", "rejected"], example: "pending" },
+                        resolved_by: { type: "string", nullable: true, example: "67ceca911fdb988f26fcbf98" },
+                        resolution_note: { type: "string", nullable: true, example: "Reviewed and fixed." },
+                        created_at: { type: "string", format: "date-time", example: "2026-03-12T08:30:00.000Z" },
+                        updated_at: { type: "string", format: "date-time", example: "2026-03-12T08:35:00.000Z" }
+                    }
+                },
+                ReportFactListPagination: {
+                    type: "object",
+                    properties: {
+                        page: { type: "integer", example: 1 },
+                        limit: { type: "integer", example: 10 },
+                        total: { type: "integer", example: 24 },
+                        total_pages: { type: "integer", example: 3 }
+                    }
+                },
+                ReportFactListDataResponse: {
+                    type: "object",
+                    properties: {
+                        items: {
+                            type: "array",
+                            items: {
+                                $ref: "#/components/schemas/ReportFactResponse"
+                            }
+                        },
+                        pagination: {
+                            $ref: "#/components/schemas/ReportFactListPagination"
+                        }
+                    }
+                },
+                ReportFactItemApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Create report fact successfully" },
+                        data: {
+                            $ref: "#/components/schemas/ReportFactResponse"
+                        }
+                    }
+                },
+                ReportFactListApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get report facts successfully" },
+                        data: {
+                            $ref: "#/components/schemas/ReportFactListDataResponse"
+                        }
+                    }
+                },
                 CreateCategoryInput: {
                     type: "object",
                     required: ["name"],
@@ -697,6 +817,26 @@ const options = {
                         }
                     }
                 },
+                CreateReportFactRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/CreateReportFactInput"
+                            }
+                        }
+                    }
+                },
+                UpdateReportFactStatusRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/UpdateReportFactStatusInput"
+                            }
+                        }
+                    }
+                },
                 CreateCategoryRequestBody: {
                     required: true,
                     content: {
@@ -755,6 +895,9 @@ const options = {
                 },
                 FavouriteDuplicateResponse: {
                     description: "favourite already exists for this fact and user"
+                },
+                ReportFactDuplicateResponse: {
+                    description: "user already has an open report for this fact"
                 },
                 RoleInUseResponse: {
                     description: "cannot delete role because it is being used by users"

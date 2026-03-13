@@ -3,6 +3,8 @@ import Fact from "./fact.model.js";
 import FactTranslation from "./factTranslation.model.js";
 import FactRandomSession from "./factRandomSession.model.js";
 import Favourite from "../favourite/favourite.model.js";
+import { recordFactView } from "../factView/factView.service.js";
+import { deleteReportFactsByFactId } from "../reportFact/reportFact.service.js";
 import Role from "../role/role.model.js";
 import { createHttpError } from "../../utils/httpError.js";
 import { DEFAULT_LANGUAGE, normalizeLanguage } from "../../config/i18n.js";
@@ -302,6 +304,19 @@ const ensureAuthenticatedActor = (actor) => {
     }
 };
 
+const safeRecordFactView = async (factId, viewer = null) => {
+    try {
+        await recordFactView({
+            factId: String(factId),
+            userId: viewer?.user_id ? String(viewer.user_id) : null,
+            ipAddress: viewer?.ip_address ?? null
+        });
+    } catch (error) {
+        // Tracking errors should not break fact read APIs.
+        console.error(error);
+    }
+};
+
 export const createFact = async (payload, actorUserId) => {
     if (!isValidObjectId(actorUserId)) {
         throw createHttpError(401, "Unauthorized");
@@ -384,7 +399,7 @@ export const getFactList = async (query = {}, actor = null, language = DEFAULT_L
     };
 };
 
-export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, actor = null) => {
+export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, actor = null, viewer = null) => {
     const filter = {
         status: FACT_STATUS.PUBLISHED
     };
@@ -423,6 +438,7 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, act
         }
 
         const [localizedFact] = await hydrateFactTranslations([fact], language);
+        await safeRecordFactView(localizedFact._id, viewer);
         return {
             fact: mapFactResponse(localizedFact),
             meta: {
@@ -488,6 +504,7 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, act
     await session.save();
 
     const [localizedFact] = await hydrateFactTranslations([drawResult.fact], language);
+    await safeRecordFactView(localizedFact._id, viewer);
     return {
         fact: mapFactResponse(localizedFact),
         meta: {
@@ -497,7 +514,7 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, act
     };
 };
 
-export const getFactById = async (factId, actor = null, language = DEFAULT_LANGUAGE) => {
+export const getFactById = async (factId, actor = null, language = DEFAULT_LANGUAGE, viewer = null) => {
     ensureFactId(factId);
 
     const fact = await Fact.findById(factId).lean();
@@ -507,6 +524,7 @@ export const getFactById = async (factId, actor = null, language = DEFAULT_LANGU
 
     if (fact.status === FACT_STATUS.PUBLISHED) {
         const [localizedFact] = await hydrateFactTranslations([fact], language);
+        await safeRecordFactView(localizedFact._id, viewer);
         return mapFactResponse(localizedFact);
     }
 
@@ -638,7 +656,8 @@ export const deleteFactById = async (factId, actor) => {
     await Promise.all([
         fact.deleteOne(),
         FactTranslation.deleteMany({ fact_id: fact._id }),
-        Favourite.deleteMany({ fact_id: fact._id })
+        Favourite.deleteMany({ fact_id: fact._id }),
+        deleteReportFactsByFactId(String(fact._id))
     ]);
 
     return mapFactResponse(fact.toObject());

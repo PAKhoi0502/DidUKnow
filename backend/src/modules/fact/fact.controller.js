@@ -9,6 +9,23 @@ import {
     updateFactStatusById
 } from "./fact.service.js";
 
+const getClientIpAddress = (req) => {
+    const forwardedFor = req.headers["x-forwarded-for"];
+    if (typeof forwardedFor === "string" && forwardedFor.trim().length > 0) {
+        return forwardedFor.split(",")[0].trim();
+    }
+
+    if (typeof req.ip === "string" && req.ip.trim().length > 0) {
+        return req.ip.trim();
+    }
+
+    if (typeof req.socket?.remoteAddress === "string" && req.socket.remoteAddress.trim().length > 0) {
+        return req.socket.remoteAddress.trim();
+    }
+
+    return null;
+};
+
 export const createFactController = async (req, res, next) => {
     try {
         const fact = await createFact(req.validatedBody, req.user.id);
@@ -35,7 +52,15 @@ export const getFactsController = async (req, res, next) => {
 
 export const getFactByIdController = async (req, res, next) => {
     try {
-        const fact = await getFactById(req.params.id, req.user ?? null, req.language);
+        const fact = await getFactById(
+            req.params.id,
+            req.user ?? null,
+            req.language,
+            {
+                user_id: req.user?.id ?? null,
+                ip_address: getClientIpAddress(req)
+            }
+        );
         return res.status(200).json({
             message: "facts.get_by_id_success",
             data: fact
@@ -50,7 +75,15 @@ export const getRandomFactController = async (req, res, next) => {
         const {
             fact,
             meta
-        } = await getRandomFact(req.query, req.language, req.user ?? null);
+        } = await getRandomFact(
+            req.query,
+            req.language,
+            req.user ?? null,
+            {
+                user_id: req.user?.id ?? null,
+                ip_address: getClientIpAddress(req)
+            }
+        );
 
         return res.status(200).json({
             message: "facts.get_random_success",
