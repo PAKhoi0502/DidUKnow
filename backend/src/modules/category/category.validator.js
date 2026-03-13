@@ -21,7 +21,8 @@ export const validateCreateCategory = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -35,24 +36,24 @@ export const validateCreateCategory = (req, res, next) => {
     const errors = [];
 
     if (!name || typeof name !== "string" || name.trim().length < 2 || name.trim().length > 60) {
-        errors.push("name must be between 2 and 60 characters");
+        errors.push("errors.category_name_range_2_60");
     }
 
     if (slug !== undefined) {
         if (typeof slug !== "string" || slug.trim().length < 2 || slug.trim().length > 80 || !isValidSlug(slug.trim().toLowerCase())) {
-            errors.push("slug must contain lowercase letters, numbers, and hyphens only");
+            errors.push("errors.slug_invalid_format");
         }
     }
 
     if (description !== undefined && description !== null) {
         if (typeof description !== "string" || description.trim().length > 500) {
-            errors.push("description must be a string up to 500 characters");
+            errors.push("errors.description_string_max_500");
         }
     }
 
     if (icon !== undefined && icon !== null) {
         if (typeof icon !== "string" || icon.trim().length > 255) {
-            errors.push("icon must be a string up to 255 characters");
+            errors.push("errors.icon_string_max_255");
         }
     }
 
@@ -80,7 +81,7 @@ export const validateUpdateCategory = (req, res, next) => {
     if (inputKeys.length === 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["At least one field is required for update"]
+            errors: ["errors.update_payload_required"]
         });
     }
 
@@ -88,7 +89,8 @@ export const validateUpdateCategory = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -102,24 +104,24 @@ export const validateUpdateCategory = (req, res, next) => {
     const errors = [];
 
     if (name !== undefined && (typeof name !== "string" || name.trim().length < 2 || name.trim().length > 60)) {
-        errors.push("name must be between 2 and 60 characters");
+        errors.push("errors.category_name_range_2_60");
     }
 
     if (slug !== undefined) {
         if (typeof slug !== "string" || slug.trim().length < 2 || slug.trim().length > 80 || !isValidSlug(slug.trim().toLowerCase())) {
-            errors.push("slug must contain lowercase letters, numbers, and hyphens only");
+            errors.push("errors.slug_invalid_format");
         }
     }
 
     if (description !== undefined && description !== null) {
         if (typeof description !== "string" || description.trim().length > 500) {
-            errors.push("description must be a string up to 500 characters");
+            errors.push("errors.description_string_max_500");
         }
     }
 
     if (icon !== undefined && icon !== null) {
         if (typeof icon !== "string" || icon.trim().length > 255) {
-            errors.push("icon must be a string up to 255 characters");
+            errors.push("errors.icon_string_max_255");
         }
     }
 
@@ -146,7 +148,7 @@ export const validateCategoryIdParam = (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["id must be a valid ObjectId"]
+            errors: ["errors.id_invalid"]
         });
     }
 
@@ -159,7 +161,7 @@ export const validateCategoryTranslationLanguageParam = (req, res, next) => {
     if (!language) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["language must be one of: vi, en"]
+            errors: ["errors.language_invalid_vi_en"]
         });
     }
 
@@ -175,7 +177,8 @@ export const validateUpsertCategoryTranslation = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -183,14 +186,14 @@ export const validateUpsertCategoryTranslation = (req, res, next) => {
     const errors = [];
 
     if (!inputKeys.includes("name")) {
-        errors.push("name is required");
+        errors.push("errors.name_required");
     } else if (typeof name !== "string" || name.trim().length < 2 || name.trim().length > 60) {
-        errors.push("name must be between 2 and 60 characters");
+        errors.push("errors.category_name_range_2_60");
     }
 
     if (description !== undefined && description !== null) {
         if (typeof description !== "string" || description.trim().length > 500) {
-            errors.push("description must be a string up to 500 characters");
+            errors.push("errors.description_string_max_500");
         }
     }
 

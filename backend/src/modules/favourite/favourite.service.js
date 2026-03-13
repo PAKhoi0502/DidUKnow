@@ -27,9 +27,9 @@ const normalizePagination = (query = {}) => {
 const ensureValidObjectId = (value, fieldName) => {
     if (typeof value !== "string" || !mongoose.Types.ObjectId.isValid(value)) {
         if (fieldName === "fact_id") {
-            throw createHttpError(400, "fact_id must be a valid ObjectId");
+            throw createHttpError(400, "errors.fact_id_invalid");
         }
-        throw createHttpError(400, "id must be a valid ObjectId");
+        throw createHttpError(400, "errors.id_invalid");
     }
 };
 
@@ -49,7 +49,7 @@ export const addFavourite = async (userId, factId) => {
 
     const fact = await Fact.findById(factId).select("_id status").lean();
     if (!fact || fact.status !== "published") {
-        throw createHttpError(404, "Fact not found");
+        throw createHttpError(404, "errors.fact_not_found");
     }
 
     const existed = await Favourite.findOne({

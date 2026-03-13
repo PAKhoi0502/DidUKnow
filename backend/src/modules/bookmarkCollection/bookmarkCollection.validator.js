@@ -31,7 +31,8 @@ export const validateCreateBookmarkCollection = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -70,7 +71,8 @@ export const validateUpdateBookmarkCollection = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 

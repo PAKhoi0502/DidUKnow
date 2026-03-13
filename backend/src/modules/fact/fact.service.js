@@ -178,7 +178,7 @@ const parseExcludedFactIds = (query = {}) => {
     )];
 
     if (uniqueIds.some((id) => !isValidObjectId(id))) {
-        throw createHttpError(400, "exclude_id must be a valid ObjectId");
+        throw createHttpError(400, "errors.exclude_id_invalid");
     }
 
     return uniqueIds;
@@ -206,7 +206,7 @@ const parseTagFilterIds = (query = {}) => {
     )];
 
     if (normalizedTagIds.some((id) => !isValidObjectId(id))) {
-        throw createHttpError(400, "tag_id and tag_ids must be valid ObjectId values");
+        throw createHttpError(400, "errors.tag_filter_ids_invalid");
     }
 
     return normalizedTagIds;
@@ -298,13 +298,13 @@ const isOwner = (factDoc, actor) => {
 
 const ensureFactId = (factId) => {
     if (!isValidObjectId(factId)) {
-        throw createHttpError(400, "fact_id must be a valid ObjectId");
+        throw createHttpError(400, "errors.fact_id_invalid");
     }
 };
 
 const ensureAuthenticatedActor = (actor) => {
     if (!actor?.id) {
-        throw createHttpError(401, "Unauthorized");
+        throw createHttpError(401, "errors.unauthorized");
     }
 };
 
@@ -323,7 +323,7 @@ const safeRecordFactView = async (factId, viewer = null) => {
 
 export const createFact = async (payload, actorUserId) => {
     if (!isValidObjectId(actorUserId)) {
-        throw createHttpError(401, "Unauthorized");
+        throw createHttpError(401, "errors.unauthorized");
     }
 
     const fact = await Fact.create({
@@ -350,7 +350,7 @@ export const getFactList = async (query = {}, actor = null, language = DEFAULT_L
     if (canFilterStatus) {
         if (query.status !== undefined) {
             if (!FACT_ALLOWED_STATUSES.includes(query.status)) {
-                throw createHttpError(400, "status must be one of: draft, published");
+                throw createHttpError(400, "errors.fact_status_invalid");
             }
             filter.status = query.status;
         }
@@ -360,7 +360,7 @@ export const getFactList = async (query = {}, actor = null, language = DEFAULT_L
 
     if (query.category_id !== undefined) {
         if (!isValidObjectId(query.category_id)) {
-            throw createHttpError(400, "category_id must be a valid ObjectId");
+            throw createHttpError(400, "errors.category_id_invalid");
         }
         filter.category_id = query.category_id;
     }
@@ -411,7 +411,7 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, act
 
     if (query.category_id !== undefined) {
         if (!isValidObjectId(query.category_id)) {
-            throw createHttpError(400, "category_id must be a valid ObjectId");
+            throw createHttpError(400, "errors.category_id_invalid");
         }
         filter.category_id = new mongoose.Types.ObjectId(query.category_id);
     }
@@ -438,7 +438,7 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, act
         ]);
 
         if (!fact) {
-            throw createHttpError(404, "Fact not found");
+            throw createHttpError(404, "errors.fact_not_found");
         }
 
         const [localizedFact] = await hydrateFactTranslations([fact], language);
@@ -477,7 +477,7 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, act
     if (poolIds.length === 0) {
         const candidateFacts = await Fact.find(filter).select("_id").lean();
         if (candidateFacts.length === 0) {
-            throw createHttpError(404, "Fact not found");
+            throw createHttpError(404, "errors.fact_not_found");
         }
         poolIds = candidateFacts.map((item) => String(item._id));
         cycleReset = sessionExisted;
@@ -490,7 +490,7 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, act
         if (candidateFacts.length === 0) {
             session.remaining_fact_ids = [];
             await session.save();
-            throw createHttpError(404, "Fact not found");
+            throw createHttpError(404, "errors.fact_not_found");
         }
 
         cycleReset = true;
@@ -501,7 +501,7 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, act
     if (!drawResult.fact) {
         session.remaining_fact_ids = [];
         await session.save();
-        throw createHttpError(404, "Fact not found");
+        throw createHttpError(404, "errors.fact_not_found");
     }
 
     session.remaining_fact_ids = drawResult.remaining;
@@ -523,7 +523,7 @@ export const getFactById = async (factId, actor = null, language = DEFAULT_LANGU
 
     const fact = await Fact.findById(factId).lean();
     if (!fact) {
-        throw createHttpError(404, "Fact not found");
+        throw createHttpError(404, "errors.fact_not_found");
     }
 
     if (fact.status === FACT_STATUS.PUBLISHED) {
@@ -533,12 +533,12 @@ export const getFactById = async (factId, actor = null, language = DEFAULT_LANGU
     }
 
     if (!actor?.id) {
-        throw createHttpError(404, "Fact not found");
+        throw createHttpError(404, "errors.fact_not_found");
     }
 
     const canViewDraft = isOwner(fact, actor) || await isActorAdminOrEditor(actor);
     if (!canViewDraft) {
-        throw createHttpError(403, "Forbidden");
+        throw createHttpError(403, "errors.forbidden");
     }
 
     const [localizedFact] = await hydrateFactTranslations([fact], language);
@@ -550,31 +550,33 @@ export const updateFactById = async (factId, payload, actor) => {
     ensureAuthenticatedActor(actor);
 
     if (payload.status !== undefined) {
-        throw createHttpError(400, "status cannot be updated in this endpoint");
+        throw createHttpError(400, "errors.fact_status_update_not_allowed");
     }
 
     if (payload.created_by !== undefined) {
-        throw createHttpError(400, "created_by cannot be updated");
+        throw createHttpError(400, "errors.fact_created_by_update_not_allowed");
     }
 
     const allowedFields = ["title", "short_fact", "content", "category_id", "tag_ids"];
     const payloadKeys = Object.keys(payload || {});
     const invalidFields = payloadKeys.filter((key) => !allowedFields.includes(key));
     if (invalidFields.length > 0) {
-        throw createHttpError(400, `Invalid fields: ${invalidFields.join(", ")}`);
+        throw createHttpError(400, "errors.validation_failed", {
+            invalid_fields: invalidFields
+        });
     }
 
     if (payloadKeys.length === 0) {
-        throw createHttpError(400, "At least one field is required for update");
+        throw createHttpError(400, "errors.update_payload_required");
     }
 
     if (payload.category_id !== undefined && !isValidObjectId(payload.category_id)) {
-        throw createHttpError(400, "category_id must be a valid ObjectId");
+        throw createHttpError(400, "errors.category_id_invalid");
     }
 
     if (payload.tag_ids !== undefined) {
         if (!Array.isArray(payload.tag_ids)) {
-            throw createHttpError(400, "tag_ids must be an array of valid ObjectId values");
+            throw createHttpError(400, "errors.tag_ids_array_invalid");
         }
 
         const normalizedTagIds = [...new Set(
@@ -584,7 +586,7 @@ export const updateFactById = async (factId, payload, actor) => {
         )];
 
         if (normalizedTagIds.some((id) => !isValidObjectId(id))) {
-            throw createHttpError(400, "tag_ids must contain valid ObjectId values");
+            throw createHttpError(400, "errors.tag_ids_invalid");
         }
 
         payload.tag_ids = normalizedTagIds;
@@ -592,12 +594,12 @@ export const updateFactById = async (factId, payload, actor) => {
 
     const fact = await Fact.findById(factId);
     if (!fact) {
-        throw createHttpError(404, "Fact not found");
+        throw createHttpError(404, "errors.fact_not_found");
     }
 
     const canUpdate = isOwner(fact, actor) || await isActorAdmin(actor);
     if (!canUpdate) {
-        throw createHttpError(403, "Forbidden");
+        throw createHttpError(403, "errors.forbidden");
     }
 
     if (payload.title !== undefined) fact.title = payload.title;
@@ -616,18 +618,18 @@ export const updateFactStatusById = async (factId, status, actor, reason = null)
     ensureAuthenticatedActor(actor);
 
     if (!FACT_ALLOWED_STATUSES.includes(status)) {
-        throw createHttpError(400, "status must be one of: draft, published");
+        throw createHttpError(400, "errors.fact_status_invalid");
     }
 
     if (reason !== null && reason !== undefined) {
         if (typeof reason !== "string" || reason.trim().length < 3) {
-            throw createHttpError(400, "reason must be at least 3 characters");
+            throw createHttpError(400, "errors.reason_min_length_3");
         }
     }
 
     const canChangeStatus = await isActorAdmin(actor);
     if (!canChangeStatus) {
-        throw createHttpError(403, "Forbidden");
+        throw createHttpError(403, "errors.forbidden");
     }
 
     const fact = await Fact.findByIdAndUpdate(
@@ -637,7 +639,7 @@ export const updateFactStatusById = async (factId, status, actor, reason = null)
     );
 
     if (!fact) {
-        throw createHttpError(404, "Fact not found");
+        throw createHttpError(404, "errors.fact_not_found");
     }
 
     await logAdminAction({
@@ -660,12 +662,12 @@ export const deleteFactById = async (factId, actor) => {
 
     const fact = await Fact.findById(factId);
     if (!fact) {
-        throw createHttpError(404, "Fact not found");
+        throw createHttpError(404, "errors.fact_not_found");
     }
 
     const canDelete = isOwner(fact, actor) || await isActorAdmin(actor);
     if (!canDelete) {
-        throw createHttpError(403, "Forbidden");
+        throw createHttpError(403, "errors.forbidden");
     }
 
     await Promise.all([
@@ -686,17 +688,17 @@ export const upsertFactTranslationById = async (factId, language, payload, actor
 
     const normalizedLanguage = normalizeLanguage(language);
     if (!normalizedLanguage) {
-        throw createHttpError(400, "language must be one of: vi, en");
+        throw createHttpError(400, "errors.language_invalid_vi_en");
     }
 
     const fact = await Fact.findById(factId);
     if (!fact) {
-        throw createHttpError(404, "Fact not found");
+        throw createHttpError(404, "errors.fact_not_found");
     }
 
     const canUpdate = isOwner(fact, actor) || await isActorAdmin(actor);
     if (!canUpdate) {
-        throw createHttpError(403, "Forbidden");
+        throw createHttpError(403, "errors.forbidden");
     }
 
     if (normalizedLanguage === DEFAULT_LANGUAGE) {

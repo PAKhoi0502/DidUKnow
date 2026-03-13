@@ -58,7 +58,7 @@ export const createReportFact = async (userId, payload) => {
 
     const fact = await Fact.findById(payload.fact_id).select("_id").lean();
     if (!fact) {
-        throw createHttpError(404, "Fact not found");
+        throw createHttpError(404, "errors.fact_not_found");
     }
 
     const existingOpenReport = await ReportFact.findOne({

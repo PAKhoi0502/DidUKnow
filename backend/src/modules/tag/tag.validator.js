@@ -19,7 +19,8 @@ export const validateCreateTag = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -27,12 +28,12 @@ export const validateCreateTag = (req, res, next) => {
     const errors = [];
 
     if (!name || typeof name !== "string" || name.trim().length < 2 || name.trim().length > 60) {
-        errors.push("name must be between 2 and 60 characters");
+        errors.push("errors.category_name_range_2_60");
     }
 
     if (slug !== undefined) {
         if (typeof slug !== "string" || slug.trim().length < 2 || slug.trim().length > 80 || !isValidSlug(slug.trim().toLowerCase())) {
-            errors.push("slug must contain lowercase letters, numbers, and hyphens only");
+            errors.push("errors.slug_invalid_format");
         }
     }
 
@@ -58,7 +59,7 @@ export const validateUpdateTag = (req, res, next) => {
     if (inputKeys.length === 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["At least one field is required for update"]
+            errors: ["errors.update_payload_required"]
         });
     }
 
@@ -66,7 +67,8 @@ export const validateUpdateTag = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -74,12 +76,12 @@ export const validateUpdateTag = (req, res, next) => {
     const errors = [];
 
     if (name !== undefined && (typeof name !== "string" || name.trim().length < 2 || name.trim().length > 60)) {
-        errors.push("name must be between 2 and 60 characters");
+        errors.push("errors.category_name_range_2_60");
     }
 
     if (slug !== undefined) {
         if (typeof slug !== "string" || slug.trim().length < 2 || slug.trim().length > 80 || !isValidSlug(slug.trim().toLowerCase())) {
-            errors.push("slug must contain lowercase letters, numbers, and hyphens only");
+            errors.push("errors.slug_invalid_format");
         }
     }
 
@@ -103,7 +105,7 @@ export const validateTagIdParam = (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["id must be a valid ObjectId"]
+            errors: ["errors.id_invalid"]
         });
     }
 

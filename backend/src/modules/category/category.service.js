@@ -121,7 +121,7 @@ export const getCategoryById = async (categoryId, language = DEFAULT_LANGUAGE) =
     const category = await Category.findById(categoryId).lean();
 
     if (!category) {
-        throw createHttpError(404, "Category not found");
+        throw createHttpError(404, "errors.category_not_found");
     }
 
     const [localizedCategory] = await hydrateCategoryTranslations([category], language);
@@ -132,7 +132,7 @@ export const createCategory = async (payload, actor = null) => {
     const slug = payload.slug ?? toSlug(payload.name);
 
     if (!slug) {
-        throw createHttpError(400, "slug is invalid");
+        throw createHttpError(400, "errors.slug_invalid");
     }
 
     const existed = await Category.findOne({
@@ -140,7 +140,7 @@ export const createCategory = async (payload, actor = null) => {
     }).lean();
 
     if (existed) {
-        throw createHttpError(409, "Category name or slug already exists");
+        throw createHttpError(409, "errors.category_name_or_slug_duplicate");
     }
 
     const category = await Category.create({
@@ -173,7 +173,7 @@ export const updateCategoryById = async (categoryId, payload, actor = null) => {
     }
 
     if (updatePayload.slug !== undefined && !updatePayload.slug) {
-        throw createHttpError(400, "slug is invalid");
+        throw createHttpError(400, "errors.slug_invalid");
     }
 
     if (updatePayload.name) {
@@ -183,7 +183,7 @@ export const updateCategoryById = async (categoryId, payload, actor = null) => {
         }).lean();
 
         if (existedName) {
-            throw createHttpError(409, "Category name already exists");
+            throw createHttpError(409, "errors.category_name_duplicate");
         }
     }
 
@@ -194,7 +194,7 @@ export const updateCategoryById = async (categoryId, payload, actor = null) => {
         }).lean();
 
         if (existedSlug) {
-            throw createHttpError(409, "Category slug already exists");
+            throw createHttpError(409, "errors.category_slug_duplicate");
         }
     }
 
@@ -205,7 +205,7 @@ export const updateCategoryById = async (categoryId, payload, actor = null) => {
     );
 
     if (!category) {
-        throw createHttpError(404, "Category not found");
+        throw createHttpError(404, "errors.category_not_found");
     }
 
     await upsertDefaultCategoryTranslation(category);
@@ -225,13 +225,13 @@ export const updateCategoryById = async (categoryId, payload, actor = null) => {
 export const deleteCategoryById = async (categoryId, actor = null) => {
     const isCategoryInUse = await Fact.exists({ category_id: categoryId });
     if (isCategoryInUse) {
-        throw createHttpError(409, "Cannot delete category because it is being used by facts");
+        throw createHttpError(409, "errors.category_in_use");
     }
 
     const category = await Category.findByIdAndDelete(categoryId);
 
     if (!category) {
-        throw createHttpError(404, "Category not found");
+        throw createHttpError(404, "errors.category_not_found");
     }
 
     await CategoryTranslation.deleteMany({ category_id: category._id });
@@ -251,17 +251,17 @@ export const deleteCategoryById = async (categoryId, actor = null) => {
 
 export const upsertCategoryTranslationById = async (categoryId, language, payload) => {
     if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-        throw createHttpError(400, "id must be a valid ObjectId");
+        throw createHttpError(400, "errors.id_invalid");
     }
 
     const normalizedLanguage = normalizeLanguage(language);
     if (!normalizedLanguage) {
-        throw createHttpError(400, "language must be one of: vi, en");
+        throw createHttpError(400, "errors.language_invalid_vi_en");
     }
 
     const category = await Category.findById(categoryId);
     if (!category) {
-        throw createHttpError(404, "Category not found");
+        throw createHttpError(404, "errors.category_not_found");
     }
 
     if (normalizedLanguage === DEFAULT_LANGUAGE) {

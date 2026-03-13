@@ -5,15 +5,15 @@ export const validateCreateRole = (req, res, next) => {
     const errors = [];
 
     if (!name || typeof name !== "string" || name.trim().length < 2) {
-        errors.push("name must be at least 2 characters");
+        errors.push("errors.role_name_min_length_2");
     }
 
     if (description !== undefined && description !== null && typeof description !== "string") {
-        errors.push("description must be a string");
+        errors.push("errors.description_string");
     }
 
     if (status !== undefined && !["active", "inactive"].includes(status)) {
-        errors.push("status must be active or inactive");
+        errors.push("errors.role_status_invalid_active_inactive");
     }
 
     if (errors.length > 0) {
@@ -38,7 +38,7 @@ export const validateRoleIdParam = (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["id must be a valid ObjectId"]
+            errors: ["errors.id_invalid"]
         });
     }
 
@@ -53,7 +53,7 @@ export const validateUpdateRole = (req, res, next) => {
     if (inputKeys.length === 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["At least one field is required for update"]
+            errors: ["errors.update_payload_required"]
         });
     }
 
@@ -61,7 +61,8 @@ export const validateUpdateRole = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -69,15 +70,15 @@ export const validateUpdateRole = (req, res, next) => {
     const errors = [];
 
     if (name !== undefined && (typeof name !== "string" || name.trim().length < 2)) {
-        errors.push("name must be at least 2 characters");
+        errors.push("errors.role_name_min_length_2");
     }
 
     if (description !== undefined && description !== null && typeof description !== "string") {
-        errors.push("description must be a string");
+        errors.push("errors.description_string");
     }
 
     if (status !== undefined && !["active", "inactive"].includes(status)) {
-        errors.push("status must be active or inactive");
+        errors.push("errors.role_status_invalid_active_inactive");
     }
 
     if (errors.length > 0) {

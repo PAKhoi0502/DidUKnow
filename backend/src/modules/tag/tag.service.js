@@ -34,7 +34,7 @@ export const getAllTags = async () => {
 export const getTagById = async (tagId) => {
     const tag = await Tag.findById(tagId).lean();
     if (!tag) {
-        throw createHttpError(404, "Tag not found");
+        throw createHttpError(404, "errors.tag_not_found");
     }
 
     return mapTagResponse(tag);
@@ -43,14 +43,14 @@ export const getTagById = async (tagId) => {
 export const createTag = async (payload, actor = null) => {
     const slug = payload.slug ?? toSlug(payload.name);
     if (!slug) {
-        throw createHttpError(400, "slug is invalid");
+        throw createHttpError(400, "errors.slug_invalid");
     }
 
     const existed = await Tag.findOne({
         $or: [{ name: payload.name }, { slug }]
     }).lean();
     if (existed) {
-        throw createHttpError(409, "Tag name or slug already exists");
+        throw createHttpError(409, "errors.tag_name_or_slug_duplicate");
     }
 
     const tag = await Tag.create({
@@ -80,7 +80,7 @@ export const updateTagById = async (tagId, payload, actor = null) => {
     }
 
     if (updatePayload.slug !== undefined && !updatePayload.slug) {
-        throw createHttpError(400, "slug is invalid");
+        throw createHttpError(400, "errors.slug_invalid");
     }
 
     if (updatePayload.name) {
@@ -90,7 +90,7 @@ export const updateTagById = async (tagId, payload, actor = null) => {
         }).lean();
 
         if (existedName) {
-            throw createHttpError(409, "Tag name already exists");
+            throw createHttpError(409, "errors.tag_name_duplicate");
         }
     }
 
@@ -101,7 +101,7 @@ export const updateTagById = async (tagId, payload, actor = null) => {
         }).lean();
 
         if (existedSlug) {
-            throw createHttpError(409, "Tag slug already exists");
+            throw createHttpError(409, "errors.tag_slug_duplicate");
         }
     }
 
@@ -112,7 +112,7 @@ export const updateTagById = async (tagId, payload, actor = null) => {
     );
 
     if (!tag) {
-        throw createHttpError(404, "Tag not found");
+        throw createHttpError(404, "errors.tag_not_found");
     }
 
     await logAdminAction({
@@ -131,12 +131,12 @@ export const updateTagById = async (tagId, payload, actor = null) => {
 export const deleteTagById = async (tagId, actor = null) => {
     const isTagInUse = await Fact.exists({ tag_ids: tagId });
     if (isTagInUse) {
-        throw createHttpError(409, "Cannot delete tag because it is being used by facts");
+        throw createHttpError(409, "errors.tag_in_use");
     }
 
     const tag = await Tag.findByIdAndDelete(tagId);
     if (!tag) {
-        throw createHttpError(404, "Tag not found");
+        throw createHttpError(404, "errors.tag_not_found");
     }
 
     await logAdminAction({

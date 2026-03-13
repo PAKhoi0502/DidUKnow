@@ -35,7 +35,7 @@ export const createUser = async (payload) => {
     }).lean();
 
     if (existed) {
-        throw createHttpError(409, "Username or email already exists");
+        throw createHttpError(409, "errors.user_duplicate");
     }
 
     const defaultUserRole = await Role.findOne({
@@ -44,7 +44,7 @@ export const createUser = async (payload) => {
     }).lean();
 
     if (!defaultUserRole) {
-        throw createHttpError(500, "Default 'User' role is not configured");
+        throw createHttpError(500, "errors.default_user_role_missing");
     }
 
     const user = await User.create({
@@ -63,12 +63,12 @@ export const loginUser = async (payload) => {
     const user = await User.findOne({ email: payload.email });
 
     if (!user) {
-        throw createHttpError(401, "Invalid email or password");
+        throw createHttpError(401, "errors.invalid_credentials");
     }
 
     const isPasswordValid = await comparePassword(payload.password, user.password_hash);
     if (!isPasswordValid) {
-        throw createHttpError(401, "Invalid email or password");
+        throw createHttpError(401, "errors.invalid_credentials");
     }
 
     user.last_login_at = new Date();
@@ -92,7 +92,7 @@ export const updateUserLanguage = async (userId, language) => {
     );
 
     if (!user) {
-        throw createHttpError(404, "User not found");
+        throw createHttpError(404, "errors.user_not_found");
     }
 
     return mapUserResponse(user.toObject());
@@ -106,7 +106,7 @@ export const updateUserById = async (userId, payload) => {
         }).lean();
 
         if (existedUsername) {
-            throw createHttpError(409, "Username already exists");
+            throw createHttpError(409, "errors.username_duplicate");
         }
     }
 
@@ -117,7 +117,7 @@ export const updateUserById = async (userId, payload) => {
         }).lean();
 
         if (existedEmail) {
-            throw createHttpError(409, "Email already exists");
+            throw createHttpError(409, "errors.email_duplicate");
         }
     }
 
@@ -135,7 +135,7 @@ export const updateUserById = async (userId, payload) => {
     );
 
     if (!user) {
-        throw createHttpError(404, "User not found");
+        throw createHttpError(404, "errors.user_not_found");
     }
 
     return mapUserResponse(user.toObject());
@@ -178,7 +178,7 @@ export const updateUserRoleById = async (userId, roleId, auditContext = {}) => {
                 status: "failed",
                 failureReason: "role_id does not exist"
             });
-            throw createHttpError(400, "role_id does not exist");
+            throw createHttpError(400, "errors.role_id_not_found");
         }
 
         const user = await User.findById(userId).select("_id role_id");
@@ -187,7 +187,7 @@ export const updateUserRoleById = async (userId, roleId, auditContext = {}) => {
                 status: "failed",
                 failureReason: "User not found"
             });
-            throw createHttpError(404, "User not found");
+            throw createHttpError(404, "errors.user_not_found");
         }
 
         const beforeRoleId = user.role_id;
@@ -223,7 +223,7 @@ export const deleteUserById = async (userId) => {
     const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
-        throw createHttpError(404, "User not found");
+        throw createHttpError(404, "errors.user_not_found");
     }
 
     return mapUserResponse(deletedUser.toObject());

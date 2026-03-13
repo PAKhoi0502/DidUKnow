@@ -22,7 +22,7 @@ export const createRole = async (payload) => {
     const existed = await Role.findOne({ name: payload.name }).lean();
 
     if (existed) {
-        throw createHttpError(409, "Role name already exists");
+        throw createHttpError(409, "errors.role_name_duplicate");
     }
 
     const role = await Role.create({
@@ -42,7 +42,7 @@ export const updateRoleById = async (roleId, payload) => {
         }).lean();
 
         if (existedName) {
-            throw createHttpError(409, "Role name already exists");
+            throw createHttpError(409, "errors.role_name_duplicate");
         }
     }
 
@@ -53,7 +53,7 @@ export const updateRoleById = async (roleId, payload) => {
     );
 
     if (!role) {
-        throw createHttpError(404, "Role not found");
+        throw createHttpError(404, "errors.role_not_found");
     }
 
     return mapRoleResponse(role.toObject());
@@ -62,13 +62,13 @@ export const updateRoleById = async (roleId, payload) => {
 export const deleteRoleById = async (roleId) => {
     const isRoleInUse = await User.exists({ role_id: roleId });
     if (isRoleInUse) {
-        throw createHttpError(409, "Cannot delete role because it is being used by users");
+        throw createHttpError(409, "errors.role_in_use");
     }
 
     const role = await Role.findByIdAndDelete(roleId);
 
     if (!role) {
-        throw createHttpError(404, "Role not found");
+        throw createHttpError(404, "errors.role_not_found");
     }
 
     return mapRoleResponse(role.toObject());

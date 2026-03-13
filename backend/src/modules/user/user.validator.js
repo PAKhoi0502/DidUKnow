@@ -17,23 +17,23 @@ export const validateCreateUser = async (req, res, next) => {
     const errors = [];
 
     if (!username || typeof username !== "string" || username.trim().length < 3) {
-        errors.push("username must be at least 3 characters");
+        errors.push("errors.username_min_length_3");
     }
 
     if (!email || typeof email !== "string" || !emailRegex.test(email.trim())) {
-        errors.push("email is invalid");
+        errors.push("errors.email_invalid");
     }
 
     if (!password || typeof password !== "string" || password.length < 6) {
-        errors.push("password must be at least 6 characters");
+        errors.push("errors.password_min_length_6");
     }
 
     if (avatarUrl !== undefined && avatarUrl !== null && typeof avatarUrl !== "string") {
-        errors.push("avatar_url must be a string");
+        errors.push("errors.avatar_url_string");
     }
 
     if (language !== undefined && !allowedLanguages.includes(language)) {
-        errors.push("language must be one of: vi, en");
+        errors.push("errors.language_invalid_vi_en");
     }
 
     if (errors.length > 0) {
@@ -59,11 +59,11 @@ export const validateLoginUser = (req, res, next) => {
     const errors = [];
 
     if (!email || typeof email !== "string" || !emailRegex.test(email.trim())) {
-        errors.push("email is invalid");
+        errors.push("errors.email_invalid");
     }
 
     if (!password || typeof password !== "string") {
-        errors.push("password is required");
+        errors.push("errors.password_required");
     }
 
     if (errors.length > 0) {
@@ -87,7 +87,7 @@ export const validateUpdateLanguage = (req, res, next) => {
     if (!language || typeof language !== "string" || !allowedLanguages.includes(language)) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["language must be one of: vi, en"]
+            errors: ["errors.language_invalid_vi_en"]
         });
     }
 
@@ -101,7 +101,7 @@ export const validateUserIdParam = (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["id must be a valid ObjectId"]
+            errors: ["errors.id_invalid"]
         });
     }
 
@@ -116,7 +116,7 @@ export const validateUpdateUser = async (req, res, next) => {
     if (inputKeys.length === 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["At least one field is required for update"]
+            errors: ["errors.update_payload_required"]
         });
     }
 
@@ -124,7 +124,8 @@ export const validateUpdateUser = async (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -140,27 +141,27 @@ export const validateUpdateUser = async (req, res, next) => {
     const errors = [];
 
     if (username !== undefined && (typeof username !== "string" || username.trim().length < 3)) {
-        errors.push("username must be at least 3 characters");
+        errors.push("errors.username_min_length_3");
     }
 
     if (email !== undefined && (typeof email !== "string" || !emailRegex.test(email.trim()))) {
-        errors.push("email is invalid");
+        errors.push("errors.email_invalid");
     }
 
     if (password !== undefined && (typeof password !== "string" || password.length < 6)) {
-        errors.push("password must be at least 6 characters");
+        errors.push("errors.password_min_length_6");
     }
 
     if (avatarUrl !== undefined && avatarUrl !== null && typeof avatarUrl !== "string") {
-        errors.push("avatar_url must be a string");
+        errors.push("errors.avatar_url_string");
     }
 
     if (language !== undefined && !allowedLanguages.includes(language)) {
-        errors.push("language must be one of: vi, en");
+        errors.push("errors.language_invalid_vi_en");
     }
 
     if (status !== undefined && !["active", "inactive", "banned"].includes(status)) {
-        errors.push("status must be one of: active, inactive, banned");
+        errors.push("errors.user_status_invalid_active_inactive_banned");
     }
 
     if (errors.length > 0) {
@@ -190,21 +191,22 @@ export const validateUpdateUserRole = async (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
     if (!roleId || typeof roleId !== "string" || !mongoose.Types.ObjectId.isValid(roleId)) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["role_id must be a valid ObjectId"]
+            errors: ["errors.role_id_invalid"]
         });
     }
 
     if (reason !== undefined && (typeof reason !== "string" || reason.trim().length < 3)) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["reason must be at least 3 characters"]
+            errors: ["errors.reason_min_length_3"]
         });
     }
 
@@ -213,13 +215,12 @@ export const validateUpdateUserRole = async (req, res, next) => {
         if (!roleExists) {
             return res.status(400).json({
                 message: "errors.validation_failed",
-                errors: ["role_id does not exist"]
+                errors: ["errors.role_id_not_found"]
             });
         }
     } catch (error) {
         return res.status(500).json({
-            message: "errors.internal_server_error",
-            error: error.message
+            message: "errors.internal_server_error"
         });
     }
 

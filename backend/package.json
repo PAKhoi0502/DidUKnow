@@ -14,7 +14,7 @@
     "seed:fact-translations": "node src/scripts/seedFactTranslations.js",
     "seed:translations": "npm run seed:category-translations && npm run seed:fact-translations",
     "seed:all": "npm run seed:roles && npm run seed:categories && npm run seed:users",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",

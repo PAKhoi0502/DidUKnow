@@ -32,38 +32,38 @@ const isValidHttpUrl = (rawValue) => {
 
 const validateAndNormalizeContent = (content, errors) => {
     if (!isNonArrayObject(content)) {
-        errors.push("content must be an object");
+        errors.push("errors.fact_content_object_required");
         return null;
     }
 
     const { intro, body, conclusion, images } = content;
 
     if (typeof intro !== "string" || intro.trim().length < 20 || intro.trim().length > 400) {
-        errors.push("content.intro must be between 20 and 400 characters");
+        errors.push("errors.fact_content_intro_range_20_400");
     }
 
     if (typeof body !== "string" || body.trim().length < 80 || body.trim().length > 8000) {
-        errors.push("content.body must be between 80 and 8000 characters");
+        errors.push("errors.fact_content_body_range_80_8000");
     }
 
     if (typeof conclusion !== "string" || conclusion.trim().length < 20 || conclusion.trim().length > 600) {
-        errors.push("content.conclusion must be between 20 and 600 characters");
+        errors.push("errors.fact_content_conclusion_range_20_600");
     }
 
     if (images !== undefined && !Array.isArray(images)) {
-        errors.push("content.images must be an array");
+        errors.push("errors.fact_content_images_array");
     }
 
     const normalizedImages = [];
 
     if (Array.isArray(images)) {
         if (images.length > CONTENT_IMAGE_MAX_ITEMS) {
-            errors.push(`content.images can contain at most ${CONTENT_IMAGE_MAX_ITEMS} items`);
+            errors.push("errors.fact_content_images_max_10");
         }
 
         images.forEach((image) => {
             if (!isNonArrayObject(image)) {
-                errors.push("content.images items must be objects");
+                errors.push("errors.fact_content_images_item_object");
                 return;
             }
 
@@ -74,18 +74,18 @@ const validateAndNormalizeContent = (content, errors) => {
             } = image;
 
             if (!isValidHttpUrl(url)) {
-                errors.push("content.images.url must be a valid http/https URL");
+                errors.push("errors.fact_content_image_url_invalid");
             }
 
             if (alt !== undefined && alt !== null) {
                 if (typeof alt !== "string" || alt.trim().length > 150) {
-                    errors.push("content.images.alt must be a string up to 150 characters");
+                    errors.push("errors.fact_content_image_alt_max_150");
                 }
             }
 
             if (caption !== undefined && caption !== null) {
                 if (typeof caption !== "string" || caption.trim().length > 200) {
-                    errors.push("content.images.caption must be a string up to 200 characters");
+                    errors.push("errors.fact_content_image_caption_max_200");
                 }
             }
 
@@ -107,38 +107,38 @@ const validateAndNormalizeContent = (content, errors) => {
 
 const validateAndNormalizeTranslationContent = (content, errors) => {
     if (!isNonArrayObject(content)) {
-        errors.push("content must be an object");
+        errors.push("errors.fact_content_object_required");
         return null;
     }
 
     const { intro, body, conclusion, images } = content;
 
     if (typeof intro !== "string" || intro.trim().length < 20 || intro.trim().length > 400) {
-        errors.push("content.intro must be between 20 and 400 characters");
+        errors.push("errors.fact_content_intro_range_20_400");
     }
 
     if (typeof body !== "string" || body.trim().length < 80 || body.trim().length > 8000) {
-        errors.push("content.body must be between 80 and 8000 characters");
+        errors.push("errors.fact_content_body_range_80_8000");
     }
 
     if (typeof conclusion !== "string" || conclusion.trim().length < 20 || conclusion.trim().length > 600) {
-        errors.push("content.conclusion must be between 20 and 600 characters");
+        errors.push("errors.fact_content_conclusion_range_20_600");
     }
 
     if (images !== undefined && !Array.isArray(images)) {
-        errors.push("content.images must be an array");
+        errors.push("errors.fact_content_images_array");
     }
 
     const normalizedImages = [];
 
     if (Array.isArray(images)) {
         if (images.length > CONTENT_IMAGE_MAX_ITEMS) {
-            errors.push(`content.images can contain at most ${CONTENT_IMAGE_MAX_ITEMS} items`);
+            errors.push("errors.fact_content_images_max_10");
         }
 
         images.forEach((image) => {
             if (!isNonArrayObject(image)) {
-                errors.push("content.images items must be objects");
+                errors.push("errors.fact_content_images_item_object");
                 return;
             }
 
@@ -149,18 +149,18 @@ const validateAndNormalizeTranslationContent = (content, errors) => {
             } = image;
 
             if (url !== undefined && url !== null && !isValidHttpUrl(url)) {
-                errors.push("content.images.url must be a valid http/https URL");
+                errors.push("errors.fact_content_image_url_invalid");
             }
 
             if (alt !== undefined && alt !== null) {
                 if (typeof alt !== "string" || alt.trim().length > 150) {
-                    errors.push("content.images.alt must be a string up to 150 characters");
+                    errors.push("errors.fact_content_image_alt_max_150");
                 }
             }
 
             if (caption !== undefined && caption !== null) {
                 if (typeof caption !== "string" || caption.trim().length > 200) {
-                    errors.push("content.images.caption must be a string up to 200 characters");
+                    errors.push("errors.fact_content_image_caption_max_200");
                 }
             }
 
@@ -182,7 +182,7 @@ const validateAndNormalizeTranslationContent = (content, errors) => {
 
 const validateCategoryIdWithOptionalExistenceCheck = async (categoryId, errors) => {
     if (typeof categoryId !== "string" || !mongoose.Types.ObjectId.isValid(categoryId)) {
-        errors.push("category_id must be a valid ObjectId");
+        errors.push("errors.category_id_invalid");
         return;
     }
 
@@ -193,7 +193,7 @@ const validateCategoryIdWithOptionalExistenceCheck = async (categoryId, errors) 
 
     const categoryExists = await CategoryModel.exists({ _id: categoryId });
     if (!categoryExists) {
-        errors.push("category_id does not exist");
+        errors.push("errors.category_id_not_found");
     }
 };
 
@@ -212,12 +212,12 @@ const normalizeObjectIdList = (rawValues) => {
 const validateTagIdsWithOptionalExistenceCheck = async (rawTagIds, errors) => {
     const normalizedTagIds = normalizeObjectIdList(rawTagIds);
     if (!normalizedTagIds) {
-        errors.push("tag_ids must be an array of valid ObjectId values");
+        errors.push("errors.tag_ids_array_invalid");
         return [];
     }
 
     if (normalizedTagIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
-        errors.push("tag_ids must contain valid ObjectId values");
+        errors.push("errors.tag_ids_invalid");
         return [];
     }
 
@@ -231,7 +231,7 @@ const validateTagIdsWithOptionalExistenceCheck = async (rawTagIds, errors) => {
     });
 
     if (existingCount !== normalizedTagIds.length) {
-        errors.push("One or more tag_ids do not exist");
+        errors.push("errors.tag_ids_not_found");
     }
 
     return normalizedTagIds;
@@ -245,7 +245,8 @@ export const validateCreateFact = async (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -260,19 +261,19 @@ export const validateCreateFact = async (req, res, next) => {
     const errors = [];
 
     if (!inputKeys.includes("title")) {
-        errors.push("title is required");
+        errors.push("errors.fact_title_required");
     } else if (typeof title !== "string" || title.trim().length < 5 || title.trim().length > 150) {
-        errors.push("title must be between 5 and 150 characters");
+        errors.push("errors.fact_title_range_5_150");
     }
 
     if (!inputKeys.includes("short_fact")) {
-        errors.push("short_fact is required");
+        errors.push("errors.fact_short_fact_required");
     } else if (typeof shortFact !== "string" || shortFact.trim().length < 10 || shortFact.trim().length > 280) {
-        errors.push("short_fact must be between 10 and 280 characters");
+        errors.push("errors.fact_short_fact_range_10_280");
     }
 
     if (!inputKeys.includes("content")) {
-        errors.push("content is required");
+        errors.push("errors.fact_content_required");
     }
 
     const normalizedContent = inputKeys.includes("content")
@@ -280,14 +281,13 @@ export const validateCreateFact = async (req, res, next) => {
         : null;
 
     if (!inputKeys.includes("category_id")) {
-        errors.push("category_id is required");
+        errors.push("errors.category_id_required");
     } else {
         try {
             await validateCategoryIdWithOptionalExistenceCheck(categoryId, errors);
         } catch (error) {
             return res.status(500).json({
-                message: "errors.internal_server_error",
-                error: error.message
+                message: "errors.internal_server_error"
             });
         }
     }
@@ -298,8 +298,7 @@ export const validateCreateFact = async (req, res, next) => {
             normalizedTagIds = await validateTagIdsWithOptionalExistenceCheck(tagIds, errors);
         } catch (error) {
             return res.status(500).json({
-                message: "errors.internal_server_error",
-                error: error.message
+                message: "errors.internal_server_error"
             });
         }
     }
@@ -329,7 +328,7 @@ export const validateUpdateFact = async (req, res, next) => {
     if (inputKeys.length === 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["At least one field is required for update"]
+            errors: ["errors.update_payload_required"]
         });
     }
 
@@ -337,7 +336,8 @@ export const validateUpdateFact = async (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -352,12 +352,12 @@ export const validateUpdateFact = async (req, res, next) => {
     const errors = [];
 
     if (title !== undefined && (typeof title !== "string" || title.trim().length < 5 || title.trim().length > 150)) {
-        errors.push("title must be between 5 and 150 characters");
+        errors.push("errors.fact_title_range_5_150");
     }
 
     if (shortFact !== undefined
         && (typeof shortFact !== "string" || shortFact.trim().length < 10 || shortFact.trim().length > 280)) {
-        errors.push("short_fact must be between 10 and 280 characters");
+        errors.push("errors.fact_short_fact_range_10_280");
     }
 
     const normalizedContent = content !== undefined
@@ -369,8 +369,7 @@ export const validateUpdateFact = async (req, res, next) => {
             await validateCategoryIdWithOptionalExistenceCheck(categoryId, errors);
         } catch (error) {
             return res.status(500).json({
-                message: "errors.internal_server_error",
-                error: error.message
+                message: "errors.internal_server_error"
             });
         }
     }
@@ -381,8 +380,7 @@ export const validateUpdateFact = async (req, res, next) => {
             normalizedTagIds = await validateTagIdsWithOptionalExistenceCheck(tagIds, errors);
         } catch (error) {
             return res.status(500).json({
-                message: "errors.internal_server_error",
-                error: error.message
+                message: "errors.internal_server_error"
             });
         }
     }
@@ -413,7 +411,8 @@ export const validateUpdateFactStatus = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -421,13 +420,13 @@ export const validateUpdateFactStatus = (req, res, next) => {
     const errors = [];
 
     if (!inputKeys.includes("status")) {
-        errors.push("status is required");
+        errors.push("errors.status_required");
     } else if (!allowedFactStatuses.includes(status)) {
-        errors.push("status must be one of: draft, published");
+        errors.push("errors.fact_status_invalid");
     }
 
     if (reason !== undefined && (typeof reason !== "string" || reason.trim().length < 3)) {
-        errors.push("reason must be at least 3 characters");
+        errors.push("errors.reason_min_length_3");
     }
 
     if (errors.length > 0) {
@@ -451,7 +450,7 @@ export const validateFactIdParam = (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["id must be a valid ObjectId"]
+            errors: ["errors.id_invalid"]
         });
     }
 
@@ -464,7 +463,7 @@ export const validateFactTranslationLanguageParam = (req, res, next) => {
     if (!language) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: ["language must be one of: vi, en"]
+            errors: ["errors.language_invalid_vi_en"]
         });
     }
 
@@ -480,7 +479,8 @@ export const validateUpsertFactTranslation = (req, res, next) => {
     if (invalidFields.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
-            errors: [`Invalid fields: ${invalidFields.join(", ")}`]
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
         });
     }
 
@@ -493,19 +493,19 @@ export const validateUpsertFactTranslation = (req, res, next) => {
     const errors = [];
 
     if (!inputKeys.includes("title")) {
-        errors.push("title is required");
+        errors.push("errors.fact_title_required");
     } else if (typeof title !== "string" || title.trim().length < 5 || title.trim().length > 150) {
-        errors.push("title must be between 5 and 150 characters");
+        errors.push("errors.fact_title_range_5_150");
     }
 
     if (!inputKeys.includes("short_fact")) {
-        errors.push("short_fact is required");
+        errors.push("errors.fact_short_fact_required");
     } else if (typeof shortFact !== "string" || shortFact.trim().length < 10 || shortFact.trim().length > 280) {
-        errors.push("short_fact must be between 10 and 280 characters");
+        errors.push("errors.fact_short_fact_range_10_280");
     }
 
     if (!inputKeys.includes("content")) {
-        errors.push("content is required");
+        errors.push("errors.fact_content_required");
     }
 
     const isDefaultLanguageTranslation = req.params.language === DEFAULT_LANGUAGE;

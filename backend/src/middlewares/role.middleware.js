@@ -1,4 +1,5 @@
 import Role from "../modules/role/role.model.js";
+import { createHttpError } from "../utils/httpError.js";
 
 export const authorizeRoles = (...allowedRoles) => {
     const normalizedAllowedRoles = allowedRoles.map((role) => role.toLowerCase());
@@ -37,10 +38,7 @@ export const authorizeRoles = (...allowedRoles) => {
             req.user.role_name = role.name;
             return next();
         } catch (error) {
-            return res.status(500).json({
-                message: "errors.internal_server_error",
-                error: error.message
-            });
+            return next(createHttpError(500, "errors.internal_server_error"));
         }
     };
 };

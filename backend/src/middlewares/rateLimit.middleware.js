@@ -29,7 +29,7 @@ export const createUserRateLimit = rateLimit({
     max: CREATE_USER_RATE_LIMIT_MAX,
     standardHeaders: true,
     legacyHeaders: false,
-    message: buildRateLimitResponse("Too many account creation attempts, please try again later.")
+    message: buildRateLimitResponse("errors.rate_limit_create_user")
 });
 
 export const loginIpRateLimit = rateLimit({
@@ -37,7 +37,7 @@ export const loginIpRateLimit = rateLimit({
     max: LOGIN_RATE_LIMIT_MAX,
     standardHeaders: true,
     legacyHeaders: false,
-    message: buildRateLimitResponse("Too many login attempts from this IP, please try again later.")
+    message: buildRateLimitResponse("errors.rate_limit_login_ip")
 });
 
 export const loginAccountRateLimit = rateLimit({
@@ -52,5 +52,5 @@ export const loginAccountRateLimit = rateLimit({
         }
         return `login_ip_fallback:${ipKeyGenerator(req.ip)}`;
     },
-    message: buildRateLimitResponse("Too many login attempts for this account, please try again later.")
+    message: buildRateLimitResponse("errors.rate_limit_login_account")
 });

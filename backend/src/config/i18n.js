@@ -62,6 +62,10 @@ const RAW_MESSAGE_TO_KEY = new Map([
     ["content.images.url must be a valid http/https URL", "errors.fact_content_image_url_invalid"],
     ["content.images.alt must be a string up to 150 characters", "errors.fact_content_image_alt_max_150"],
     ["content.images.caption must be a string up to 200 characters", "errors.fact_content_image_caption_max_200"],
+    ["tag_id and tag_ids must be valid ObjectId values", "errors.tag_filter_ids_invalid"],
+    ["tag_ids must be an array of valid ObjectId values", "errors.tag_ids_array_invalid"],
+    ["tag_ids must contain valid ObjectId values", "errors.tag_ids_invalid"],
+    ["One or more tag_ids do not exist", "errors.tag_ids_not_found"],
     ["category_id is required", "errors.category_id_required"],
     ["category_id does not exist", "errors.category_id_not_found"],
     ["status is required", "errors.status_required"],
@@ -73,7 +77,15 @@ const RAW_MESSAGE_TO_KEY = new Map([
     ["language must be one of: vi, en", "errors.language_invalid_vi_en"],
     ["status must be one of: active, inactive, banned", "errors.user_status_invalid_active_inactive_banned"],
     ["role_id must be a valid ObjectId", "errors.role_id_invalid"],
-    ["status must be active or inactive", "errors.role_status_invalid_active_inactive"]
+    ["status must be active or inactive", "errors.role_status_invalid_active_inactive"],
+    ["Tag not found", "errors.tag_not_found"],
+    ["Tag name or slug already exists", "errors.tag_name_or_slug_duplicate"],
+    ["Tag name already exists", "errors.tag_name_duplicate"],
+    ["Tag slug already exists", "errors.tag_slug_duplicate"],
+    ["Cannot delete tag because it is being used by facts", "errors.tag_in_use"],
+    ["Too many account creation attempts, please try again later.", "errors.rate_limit_create_user"],
+    ["Too many login attempts from this IP, please try again later.", "errors.rate_limit_login_ip"],
+    ["Too many login attempts for this account, please try again later.", "errors.rate_limit_login_account"]
 ]);
 
 const mapRawMessageToKey = (message) => {
@@ -87,6 +99,10 @@ const mapRawMessageToKey = (message) => {
 
     if (RAW_MESSAGE_TO_KEY.has(message)) {
         return RAW_MESSAGE_TO_KEY.get(message);
+    }
+
+    if (message.startsWith("Invalid fields:")) {
+        return "errors.invalid_fields";
     }
 
     return null;
