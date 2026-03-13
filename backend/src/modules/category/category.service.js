@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import Category from "./category.model.js";
 import Fact from "../fact/fact.model.js";
 import CategoryTranslation from "./categoryTranslation.model.js";
+import { logAdminAction } from "../adminLog/adminLog.service.js";
+import { ADMIN_LOG_ACTION, ADMIN_LOG_TARGET_TYPE } from "../adminLog/adminLog.model.js";
 import { createHttpError } from "../../utils/httpError.js";
 import { DEFAULT_LANGUAGE, normalizeLanguage } from "../../config/i18n.js";
 
@@ -126,7 +128,7 @@ export const getCategoryById = async (categoryId, language = DEFAULT_LANGUAGE) =
     return mapCategoryResponse(localizedCategory);
 };
 
-export const createCategory = async (payload) => {
+export const createCategory = async (payload, actor = null) => {
     const slug = payload.slug ?? toSlug(payload.name);
 
     if (!slug) {
@@ -149,11 +151,21 @@ export const createCategory = async (payload) => {
     });
 
     await upsertDefaultCategoryTranslation(category);
+    await logAdminAction({
+        admin: actor,
+        action: ADMIN_LOG_ACTION.CREATE,
+        target_type: ADMIN_LOG_TARGET_TYPE.CATEGORY,
+        target_id: category._id,
+        meta: {
+            name: category.name,
+            slug: category.slug
+        }
+    });
 
     return mapCategoryResponse(category.toObject());
 };
 
-export const updateCategoryById = async (categoryId, payload) => {
+export const updateCategoryById = async (categoryId, payload, actor = null) => {
     const updatePayload = { ...payload };
 
     if (updatePayload.name && !updatePayload.slug) {
@@ -197,11 +209,20 @@ export const updateCategoryById = async (categoryId, payload) => {
     }
 
     await upsertDefaultCategoryTranslation(category);
+    await logAdminAction({
+        admin: actor,
+        action: ADMIN_LOG_ACTION.UPDATE,
+        target_type: ADMIN_LOG_TARGET_TYPE.CATEGORY,
+        target_id: category._id,
+        meta: {
+            updated_fields: Object.keys(payload || {})
+        }
+    });
 
     return mapCategoryResponse(category.toObject());
 };
 
-export const deleteCategoryById = async (categoryId) => {
+export const deleteCategoryById = async (categoryId, actor = null) => {
     const isCategoryInUse = await Fact.exists({ category_id: categoryId });
     if (isCategoryInUse) {
         throw createHttpError(409, "Cannot delete category because it is being used by facts");
@@ -214,6 +235,16 @@ export const deleteCategoryById = async (categoryId) => {
     }
 
     await CategoryTranslation.deleteMany({ category_id: category._id });
+    await logAdminAction({
+        admin: actor,
+        action: ADMIN_LOG_ACTION.DELETE,
+        target_type: ADMIN_LOG_TARGET_TYPE.CATEGORY,
+        target_id: category._id,
+        meta: {
+            name: category.name,
+            slug: category.slug
+        }
+    });
 
     return mapCategoryResponse(category.toObject());
 };

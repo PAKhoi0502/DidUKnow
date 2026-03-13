@@ -1,5 +1,7 @@
 import Tag from "./tag.model.js";
 import Fact from "../fact/fact.model.js";
+import { logAdminAction } from "../adminLog/adminLog.service.js";
+import { ADMIN_LOG_ACTION, ADMIN_LOG_TARGET_TYPE } from "../adminLog/adminLog.model.js";
 import { createHttpError } from "../../utils/httpError.js";
 
 const toSlug = (value) => {
@@ -38,7 +40,7 @@ export const getTagById = async (tagId) => {
     return mapTagResponse(tag);
 };
 
-export const createTag = async (payload) => {
+export const createTag = async (payload, actor = null) => {
     const slug = payload.slug ?? toSlug(payload.name);
     if (!slug) {
         throw createHttpError(400, "slug is invalid");
@@ -56,10 +58,21 @@ export const createTag = async (payload) => {
         slug
     });
 
+    await logAdminAction({
+        admin: actor,
+        action: ADMIN_LOG_ACTION.CREATE,
+        target_type: ADMIN_LOG_TARGET_TYPE.TAG,
+        target_id: tag._id,
+        meta: {
+            name: tag.name,
+            slug: tag.slug
+        }
+    });
+
     return mapTagResponse(tag.toObject());
 };
 
-export const updateTagById = async (tagId, payload) => {
+export const updateTagById = async (tagId, payload, actor = null) => {
     const updatePayload = { ...payload };
 
     if (updatePayload.name && !updatePayload.slug) {
@@ -102,10 +115,20 @@ export const updateTagById = async (tagId, payload) => {
         throw createHttpError(404, "Tag not found");
     }
 
+    await logAdminAction({
+        admin: actor,
+        action: ADMIN_LOG_ACTION.UPDATE,
+        target_type: ADMIN_LOG_TARGET_TYPE.TAG,
+        target_id: tag._id,
+        meta: {
+            updated_fields: Object.keys(payload || {})
+        }
+    });
+
     return mapTagResponse(tag.toObject());
 };
 
-export const deleteTagById = async (tagId) => {
+export const deleteTagById = async (tagId, actor = null) => {
     const isTagInUse = await Fact.exists({ tag_ids: tagId });
     if (isTagInUse) {
         throw createHttpError(409, "Cannot delete tag because it is being used by facts");
@@ -115,6 +138,17 @@ export const deleteTagById = async (tagId) => {
     if (!tag) {
         throw createHttpError(404, "Tag not found");
     }
+
+    await logAdminAction({
+        admin: actor,
+        action: ADMIN_LOG_ACTION.DELETE,
+        target_type: ADMIN_LOG_TARGET_TYPE.TAG,
+        target_id: tag._id,
+        meta: {
+            name: tag.name,
+            slug: tag.slug
+        }
+    });
 
     return mapTagResponse(tag.toObject());
 };

@@ -33,7 +33,7 @@ export const getCategoryByIdController = async (req, res, next) => {
 
 export const createCategoryController = async (req, res, next) => {
     try {
-        const category = await createCategory(req.validatedBody);
+        const category = await createCategory(req.validatedBody, req.user ?? null);
         return res.status(201).json({
             message: "categories.create_success",
             data: category
@@ -45,7 +45,7 @@ export const createCategoryController = async (req, res, next) => {
 
 export const updateCategoryController = async (req, res, next) => {
     try {
-        const category = await updateCategoryById(req.params.id, req.validatedBody);
+        const category = await updateCategoryById(req.params.id, req.validatedBody, req.user ?? null);
         return res.status(200).json({
             message: "categories.update_success",
             data: category
@@ -57,7 +57,7 @@ export const updateCategoryController = async (req, res, next) => {
 
 export const deleteCategoryController = async (req, res, next) => {
     try {
-        const category = await deleteCategoryById(req.params.id);
+        const category = await deleteCategoryById(req.params.id, req.user ?? null);
         return res.status(200).json({
             message: "categories.delete_success",
             data: category

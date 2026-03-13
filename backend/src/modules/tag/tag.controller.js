@@ -32,7 +32,7 @@ export const getTagByIdController = async (req, res, next) => {
 
 export const createTagController = async (req, res, next) => {
     try {
-        const tag = await createTag(req.validatedBody);
+        const tag = await createTag(req.validatedBody, req.user ?? null);
         return res.status(201).json({
             message: "tags.create_success",
             data: tag
@@ -44,7 +44,7 @@ export const createTagController = async (req, res, next) => {
 
 export const updateTagController = async (req, res, next) => {
     try {
-        const tag = await updateTagById(req.params.id, req.validatedBody);
+        const tag = await updateTagById(req.params.id, req.validatedBody, req.user ?? null);
         return res.status(200).json({
             message: "tags.update_success",
             data: tag
@@ -56,7 +56,7 @@ export const updateTagController = async (req, res, next) => {
 
 export const deleteTagController = async (req, res, next) => {
     try {
-        const tag = await deleteTagById(req.params.id);
+        const tag = await deleteTagById(req.params.id, req.user ?? null);
         return res.status(200).json({
             message: "tags.delete_success",
             data: tag

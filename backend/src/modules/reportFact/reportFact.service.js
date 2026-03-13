@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import Fact from "../fact/fact.model.js";
 import ReportFact, { REPORT_FACT_ALLOWED_STATUSES, REPORT_FACT_STATUS } from "./reportFact.model.js";
+import { logAdminAction } from "../adminLog/adminLog.service.js";
+import { ADMIN_LOG_ACTION, ADMIN_LOG_TARGET_TYPE } from "../adminLog/adminLog.model.js";
 import { createHttpError } from "../../utils/httpError.js";
 
 const LIST_DEFAULT_PAGE = 1;
@@ -174,6 +176,17 @@ export const updateReportFactStatusById = async (reportId, payload, actorUserId)
     report.resolved_by = actorUserId;
     report.resolution_note = payload.resolution_note ?? null;
     await report.save();
+
+    await logAdminAction({
+        admin: { id: actorUserId },
+        action: ADMIN_LOG_ACTION.STATUS_UPDATE,
+        target_type: ADMIN_LOG_TARGET_TYPE.REPORT_FACT,
+        target_id: report._id,
+        meta: {
+            new_status: payload.status,
+            resolution_note: payload.resolution_note ?? null
+        }
+    });
 
     return mapReportFactResponse(report.toObject());
 };

@@ -7,6 +7,8 @@ import { recordFactView } from "../factView/factView.service.js";
 import { deleteReportFactsByFactId } from "../reportFact/reportFact.service.js";
 import { deleteCommentsByFactId } from "../comment/comment.service.js";
 import { deleteCollectionFactsByFactId } from "../collectionFact/collectionFact.service.js";
+import { logAdminAction } from "../adminLog/adminLog.service.js";
+import { ADMIN_LOG_ACTION, ADMIN_LOG_TARGET_TYPE } from "../adminLog/adminLog.model.js";
 import Role from "../role/role.model.js";
 import { createHttpError } from "../../utils/httpError.js";
 import { DEFAULT_LANGUAGE, normalizeLanguage } from "../../config/i18n.js";
@@ -637,6 +639,17 @@ export const updateFactStatusById = async (factId, status, actor, reason = null)
     if (!fact) {
         throw createHttpError(404, "Fact not found");
     }
+
+    await logAdminAction({
+        admin: actor,
+        action: ADMIN_LOG_ACTION.STATUS_UPDATE,
+        target_type: ADMIN_LOG_TARGET_TYPE.FACT,
+        target_id: fact._id,
+        meta: {
+            new_status: status,
+            reason: reason ?? null
+        }
+    });
 
     return mapFactResponse(fact.toObject());
 };

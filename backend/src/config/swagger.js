@@ -59,6 +59,10 @@ const options = {
                 description: "Collection facts APIs"
             },
             {
+                name: "AdminLog",
+                description: "Admin audit logs APIs"
+            },
+            {
                 name: "Media",
                 description: "Media upload APIs"
             },
@@ -792,6 +796,58 @@ const options = {
                         message: { type: "string", example: "Get collection facts successfully" },
                         data: {
                             $ref: "#/components/schemas/CollectionFactListDataResponse"
+                        }
+                    }
+                },
+                AdminLogResponse: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        admin_id: { type: "string", example: "67ceca911fdb988f26fcbf96" },
+                        action: { type: "string", enum: ["create", "update", "delete", "status_update"], example: "update" },
+                        target_type: { type: "string", enum: ["fact", "tag", "category", "report_fact", "user", "role", "comment", "bookmark_collection"], example: "fact" },
+                        target_id: { type: "string", example: "67ceca911fdb988f26fcbf97" },
+                        meta: {
+                            type: "object",
+                            nullable: true,
+                            additionalProperties: true,
+                            example: {
+                                new_status: "published",
+                                reason: "Reviewed and approved"
+                            }
+                        },
+                        created_at: { type: "string", format: "date-time", example: "2026-03-12T08:35:00.000Z" }
+                    }
+                },
+                AdminLogListPagination: {
+                    type: "object",
+                    properties: {
+                        page: { type: "integer", example: 1 },
+                        limit: { type: "integer", example: 20 },
+                        total: { type: "integer", example: 120 },
+                        total_pages: { type: "integer", example: 6 }
+                    }
+                },
+                AdminLogListDataResponse: {
+                    type: "object",
+                    properties: {
+                        items: {
+                            type: "array",
+                            items: {
+                                $ref: "#/components/schemas/AdminLogResponse"
+                            }
+                        },
+                        pagination: {
+                            $ref: "#/components/schemas/AdminLogListPagination"
+                        }
+                    }
+                },
+                AdminLogListApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get admin logs successfully" },
+                        data: {
+                            $ref: "#/components/schemas/AdminLogListDataResponse"
                         }
                     }
                 },

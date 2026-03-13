@@ -119,6 +119,8 @@
   "errors.bookmark_collection_name_length_invalid": "name must be between 2 and 80 characters.",
   "errors.collection_fact_duplicate": "Fact already exists in this collection.",
   "errors.collection_fact_not_found": "Collection fact not found.",
+  "errors.admin_log_action_invalid": "action is invalid.",
+  "errors.admin_log_target_type_invalid": "target_type is invalid.",
   "errors.date_invalid": "Date is invalid.",
   "errors.date_range_invalid": "from date must be less than or equal to to date.",
   "favourites.get_success": "Get favourites successfully.",
@@ -143,5 +145,6 @@
   "collection_facts.create_success": "Add fact to collection successfully.",
   "collection_facts.get_success": "Get collection facts successfully.",
   "collection_facts.delete_success": "Remove fact from collection successfully.",
+  "admin_logs.get_success": "Get admin logs successfully.",
   "languages.supported_get_success": "Get supported languages successfully."
 }

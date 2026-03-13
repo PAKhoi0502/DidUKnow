@@ -119,6 +119,8 @@
   "errors.bookmark_collection_name_length_invalid": "name phai tu 2 den 80 ky tu.",
   "errors.collection_fact_duplicate": "Fact da ton tai trong bo suu tap nay.",
   "errors.collection_fact_not_found": "Khong tim thay fact trong bo suu tap.",
+  "errors.admin_log_action_invalid": "action khong hop le.",
+  "errors.admin_log_target_type_invalid": "target_type khong hop le.",
   "errors.date_invalid": "Ngay thang khong hop le.",
   "errors.date_range_invalid": "Ngay bat dau phai nho hon hoac bang ngay ket thuc.",
   "favourites.get_success": "Lay danh sach yeu thich thanh cong.",
@@ -143,5 +145,6 @@
   "collection_facts.create_success": "Them fact vao bo suu tap thanh cong.",
   "collection_facts.get_success": "Lay danh sach fact trong bo suu tap thanh cong.",
   "collection_facts.delete_success": "Xoa fact khoi bo suu tap thanh cong.",
+  "admin_logs.get_success": "Lay danh sach nhat ky quan tri thanh cong.",
   "languages.supported_get_success": "Lay danh sach ngon ngu ho tro thanh cong."
 }

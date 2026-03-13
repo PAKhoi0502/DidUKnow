@@ -10,6 +10,7 @@ import reportFactRoutes from "../modules/reportFact/reportFact.route.js";
 import commentRoutes from "../modules/comment/comment.route.js";
 import bookmarkCollectionRoutes from "../modules/bookmarkCollection/bookmarkCollection.route.js";
 import collectionFactRoutes from "../modules/collectionFact/collectionFact.route.js";
+import adminLogRoutes from "../modules/adminLog/adminLog.route.js";
 import languageRoutes from "../modules/language/language.route.js";
 import mediaRoutes from "../modules/media/media.route.js";
 
@@ -26,6 +27,7 @@ router.use("/report-facts", reportFactRoutes);
 router.use("/comments", commentRoutes);
 router.use("/bookmark-collections", bookmarkCollectionRoutes);
 router.use("/collection-facts", collectionFactRoutes);
+router.use("/admin-logs", adminLogRoutes);
 router.use("/languages", languageRoutes);
 router.use("/media", mediaRoutes);
 
