@@ -109,6 +109,9 @@
   "errors.report_fact_status_invalid": "status must be one of: pending, reviewing, resolved, rejected.",
   "errors.report_fact_not_found": "Report fact not found.",
   "errors.report_fact_already_open": "You already have an open report for this fact.",
+  "errors.comment_not_found": "Comment not found.",
+  "errors.comment_content_required": "content is required.",
+  "errors.comment_content_length_invalid": "content must be between 2 and 1000 characters.",
   "errors.date_invalid": "Date is invalid.",
   "errors.date_range_invalid": "from date must be less than or equal to to date.",
   "favourites.get_success": "Get favourites successfully.",
@@ -120,5 +123,10 @@
   "report_facts.get_my_success": "Get my report facts successfully.",
   "report_facts.get_success": "Get report facts successfully.",
   "report_facts.update_status_success": "Update report fact status successfully.",
+  "comments.create_success": "Create comment successfully.",
+  "comments.get_success": "Get comments successfully.",
+  "comments.get_my_success": "Get my comments successfully.",
+  "comments.update_success": "Update comment successfully.",
+  "comments.delete_success": "Delete comment successfully.",
   "languages.supported_get_success": "Get supported languages successfully."
 }

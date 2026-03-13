@@ -47,6 +47,10 @@ const options = {
                 description: "Report incorrect fact APIs"
             },
             {
+                name: "Comment",
+                description: "Comment APIs"
+            },
+            {
                 name: "Media",
                 description: "Media upload APIs"
             },
@@ -594,6 +598,72 @@ const options = {
                         }
                     }
                 },
+                CreateCommentInput: {
+                    type: "object",
+                    required: ["fact_id", "content"],
+                    properties: {
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        content: { type: "string", minLength: 2, maxLength: 1000, example: "Great fact, thanks for sharing!" }
+                    }
+                },
+                UpdateCommentInput: {
+                    type: "object",
+                    required: ["content"],
+                    properties: {
+                        content: { type: "string", minLength: 2, maxLength: 1000, example: "Updated comment content." }
+                    }
+                },
+                CommentResponse: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        user_id: { type: "string", example: "67ceca911fdb988f26fcbf96" },
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf97" },
+                        content: { type: "string", example: "Great fact!" },
+                        created_at: { type: "string", format: "date-time", example: "2026-03-12T08:30:00.000Z" }
+                    }
+                },
+                CommentListPagination: {
+                    type: "object",
+                    properties: {
+                        page: { type: "integer", example: 1 },
+                        limit: { type: "integer", example: 10 },
+                        total: { type: "integer", example: 24 },
+                        total_pages: { type: "integer", example: 3 }
+                    }
+                },
+                CommentListDataResponse: {
+                    type: "object",
+                    properties: {
+                        items: {
+                            type: "array",
+                            items: {
+                                $ref: "#/components/schemas/CommentResponse"
+                            }
+                        },
+                        pagination: {
+                            $ref: "#/components/schemas/CommentListPagination"
+                        }
+                    }
+                },
+                CommentItemApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Create comment successfully" },
+                        data: {
+                            $ref: "#/components/schemas/CommentResponse"
+                        }
+                    }
+                },
+                CommentListApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get comments successfully" },
+                        data: {
+                            $ref: "#/components/schemas/CommentListDataResponse"
+                        }
+                    }
+                },
                 CreateCategoryInput: {
                     type: "object",
                     required: ["name"],
@@ -833,6 +903,26 @@ const options = {
                         "application/json": {
                             schema: {
                                 $ref: "#/components/schemas/UpdateReportFactStatusInput"
+                            }
+                        }
+                    }
+                },
+                CreateCommentRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/CreateCommentInput"
+                            }
+                        }
+                    }
+                },
+                UpdateCommentRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/UpdateCommentInput"
                             }
                         }
                     }

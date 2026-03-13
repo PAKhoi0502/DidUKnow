@@ -109,6 +109,9 @@
   "errors.report_fact_status_invalid": "status phai la mot trong: pending, reviewing, resolved, rejected.",
   "errors.report_fact_not_found": "Khong tim thay bao cao fact.",
   "errors.report_fact_already_open": "Ban da co bao cao dang mo cho fact nay.",
+  "errors.comment_not_found": "Khong tim thay binh luan.",
+  "errors.comment_content_required": "content la bat buoc.",
+  "errors.comment_content_length_invalid": "content phai tu 2 den 1000 ky tu.",
   "errors.date_invalid": "Ngay thang khong hop le.",
   "errors.date_range_invalid": "Ngay bat dau phai nho hon hoac bang ngay ket thuc.",
   "favourites.get_success": "Lay danh sach yeu thich thanh cong.",
@@ -120,5 +123,10 @@
   "report_facts.get_my_success": "Lay danh sach bao cao cua ban thanh cong.",
   "report_facts.get_success": "Lay danh sach bao cao fact thanh cong.",
   "report_facts.update_status_success": "Cap nhat trang thai bao cao fact thanh cong.",
+  "comments.create_success": "Tao binh luan thanh cong.",
+  "comments.get_success": "Lay danh sach binh luan thanh cong.",
+  "comments.get_my_success": "Lay danh sach binh luan cua ban thanh cong.",
+  "comments.update_success": "Cap nhat binh luan thanh cong.",
+  "comments.delete_success": "Xoa binh luan thanh cong.",
   "languages.supported_get_success": "Lay danh sach ngon ngu ho tro thanh cong."
 }
