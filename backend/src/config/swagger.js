@@ -35,6 +35,10 @@ const options = {
                 description: "Tag management APIs"
             },
             {
+                name: "Favourite",
+                description: "Favourite facts APIs"
+            },
+            {
                 name: "Media",
                 description: "Media upload APIs"
             },
@@ -396,6 +400,80 @@ const options = {
                         }
                     }
                 },
+                CreateFavouriteInput: {
+                    type: "object",
+                    required: ["fact_id"],
+                    properties: {
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf95" }
+                    }
+                },
+                FavouriteResponse: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        user_id: { type: "string", example: "67ceca911fdb988f26fcbf96" },
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf97" },
+                        created_at: { type: "string", format: "date-time", example: "2026-03-12T08:30:00.000Z" },
+                        updated_at: { type: "string", format: "date-time", example: "2026-03-12T08:35:00.000Z" }
+                    }
+                },
+                FavouriteCheckResponse: {
+                    type: "object",
+                    properties: {
+                        fact_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        is_favourited: { type: "boolean", example: true }
+                    }
+                },
+                FavouriteListPagination: {
+                    type: "object",
+                    properties: {
+                        page: { type: "integer", example: 1 },
+                        limit: { type: "integer", example: 10 },
+                        total: { type: "integer", example: 24 },
+                        total_pages: { type: "integer", example: 3 }
+                    }
+                },
+                FavouriteListDataResponse: {
+                    type: "object",
+                    properties: {
+                        items: {
+                            type: "array",
+                            items: {
+                                $ref: "#/components/schemas/FavouriteResponse"
+                            }
+                        },
+                        pagination: {
+                            $ref: "#/components/schemas/FavouriteListPagination"
+                        }
+                    }
+                },
+                FavouriteItemApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Add favourite successfully" },
+                        data: {
+                            $ref: "#/components/schemas/FavouriteResponse"
+                        }
+                    }
+                },
+                FavouriteListApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get favourites successfully" },
+                        data: {
+                            $ref: "#/components/schemas/FavouriteListDataResponse"
+                        }
+                    }
+                },
+                FavouriteCheckApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Check favourite successfully" },
+                        data: {
+                            $ref: "#/components/schemas/FavouriteCheckResponse"
+                        }
+                    }
+                },
                 CreateCategoryInput: {
                     type: "object",
                     required: ["name"],
@@ -609,6 +687,16 @@ const options = {
                         }
                     }
                 },
+                CreateFavouriteRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/CreateFavouriteInput"
+                            }
+                        }
+                    }
+                },
                 CreateCategoryRequestBody: {
                     required: true,
                     content: {
@@ -664,6 +752,9 @@ const options = {
                 },
                 TagInUseResponse: {
                     description: "cannot delete tag because it is being used by facts"
+                },
+                FavouriteDuplicateResponse: {
+                    description: "favourite already exists for this fact and user"
                 },
                 RoleInUseResponse: {
                     description: "cannot delete role because it is being used by users"

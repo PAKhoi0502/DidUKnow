@@ -99,5 +99,12 @@
   "errors.media_file_too_large": "Image size exceeds the allowed limit.",
   "errors.media_invalid_file": "Invalid upload file.",
   "errors.media_upload_failed": "Upload image failed.",
+  "errors.favourite_already_exists": "Favourite already exists.",
+  "errors.favourite_not_found": "Favourite not found.",
+  "errors.fact_id_required": "fact_id is required.",
+  "favourites.get_success": "Get favourites successfully.",
+  "favourites.create_success": "Add favourite successfully.",
+  "favourites.delete_success": "Remove favourite successfully.",
+  "favourites.check_success": "Check favourite successfully.",
   "languages.supported_get_success": "Get supported languages successfully."
 }

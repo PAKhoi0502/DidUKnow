@@ -99,5 +99,12 @@
   "errors.media_file_too_large": "Kich thuoc anh vuot qua gioi han cho phep.",
   "errors.media_invalid_file": "Tep tai len khong hop le.",
   "errors.media_upload_failed": "Tai anh len that bai.",
+  "errors.favourite_already_exists": "Fact nay da duoc danh dau yeu thich.",
+  "errors.favourite_not_found": "Khong tim thay muc yeu thich.",
+  "errors.fact_id_required": "fact_id la bat buoc.",
+  "favourites.get_success": "Lay danh sach yeu thich thanh cong.",
+  "favourites.create_success": "Them vao yeu thich thanh cong.",
+  "favourites.delete_success": "Xoa khoi yeu thich thanh cong.",
+  "favourites.check_success": "Kiem tra trang thai yeu thich thanh cong.",
   "languages.supported_get_success": "Lay danh sach ngon ngu ho tro thanh cong."
 }

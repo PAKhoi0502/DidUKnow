@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Fact from "./fact.model.js";
 import FactTranslation from "./factTranslation.model.js";
 import FactRandomSession from "./factRandomSession.model.js";
+import Favourite from "../favourite/favourite.model.js";
 import Role from "../role/role.model.js";
 import { createHttpError } from "../../utils/httpError.js";
 import { DEFAULT_LANGUAGE, normalizeLanguage } from "../../config/i18n.js";
@@ -636,7 +637,8 @@ export const deleteFactById = async (factId, actor) => {
 
     await Promise.all([
         fact.deleteOne(),
-        FactTranslation.deleteMany({ fact_id: fact._id })
+        FactTranslation.deleteMany({ fact_id: fact._id }),
+        Favourite.deleteMany({ fact_id: fact._id })
     ]);
 
     return mapFactResponse(fact.toObject());
