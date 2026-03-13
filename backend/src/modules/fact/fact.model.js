@@ -69,6 +69,12 @@ const factSchema = new mongoose.Schema(
             ref: "Category",
             required: true
         },
+        tag_ids: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Tag"
+            }
+        ],
         status: {
             type: String,
             enum: ["draft", "published"],
@@ -90,6 +96,7 @@ const factSchema = new mongoose.Schema(
 
 factSchema.index({ status: 1, created_at: -1 });
 factSchema.index({ category_id: 1, status: 1, created_at: -1 });
+factSchema.index({ tag_ids: 1, status: 1, created_at: -1 });
 factSchema.index({ title: "text", short_fact: "text" });
 
 export default mongoose.model("Fact", factSchema);

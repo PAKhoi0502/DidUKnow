@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Fact from "./fact.model.js";
 import FactTranslation from "./factTranslation.model.js";
+import FactRandomSession from "./factRandomSession.model.js";
 import Role from "../role/role.model.js";
 import { createHttpError } from "../../utils/httpError.js";
 import { DEFAULT_LANGUAGE, normalizeLanguage } from "../../config/i18n.js";
@@ -22,6 +23,7 @@ export const mapFactResponse = (factDoc) => {
         short_fact: factDoc.short_fact,
         content: factDoc.content,
         category_id: factDoc.category_id,
+        tag_ids: Array.isArray(factDoc.tag_ids) ? factDoc.tag_ids : [],
         status: factDoc.status,
         created_by: factDoc.created_by,
         created_at: factDoc.created_at,
@@ -147,6 +149,91 @@ const isValidObjectId = (value) => {
     return typeof value === "string" && mongoose.Types.ObjectId.isValid(value);
 };
 
+const parseExcludedFactIds = (query = {}) => {
+    const rawIds = [];
+
+    if (query.exclude_id !== undefined) {
+        rawIds.push(query.exclude_id);
+    }
+
+    if (query.exclude_ids !== undefined) {
+        if (Array.isArray(query.exclude_ids)) {
+            rawIds.push(...query.exclude_ids);
+        } else {
+            rawIds.push(...String(query.exclude_ids).split(","));
+        }
+    }
+
+    const uniqueIds = [...new Set(
+        rawIds
+            .map((value) => String(value || "").trim())
+            .filter(Boolean)
+    )];
+
+    if (uniqueIds.some((id) => !isValidObjectId(id))) {
+        throw createHttpError(400, "exclude_id must be a valid ObjectId");
+    }
+
+    return uniqueIds;
+};
+
+const parseTagFilterIds = (query = {}) => {
+    const rawTagIds = [];
+
+    if (query.tag_id !== undefined) {
+        rawTagIds.push(query.tag_id);
+    }
+
+    if (query.tag_ids !== undefined) {
+        if (Array.isArray(query.tag_ids)) {
+            rawTagIds.push(...query.tag_ids);
+        } else {
+            rawTagIds.push(...String(query.tag_ids).split(","));
+        }
+    }
+
+    const normalizedTagIds = [...new Set(
+        rawTagIds
+            .map((value) => String(value || "").trim())
+            .filter(Boolean)
+    )];
+
+    if (normalizedTagIds.some((id) => !isValidObjectId(id))) {
+        throw createHttpError(400, "tag_id and tag_ids must be valid ObjectId values");
+    }
+
+    return normalizedTagIds;
+};
+
+const buildRandomSessionScopeKey = (userId, categoryId = null, tagScope = null) => {
+    return `${userId}:${categoryId || "all"}:${tagScope || "all-tags"}`;
+};
+
+const drawRandomFactFromPool = async (poolIds, filter) => {
+    const remaining = Array.isArray(poolIds) ? [...poolIds] : [];
+
+    while (remaining.length > 0) {
+        const randomIndex = Math.floor(Math.random() * remaining.length);
+        const selectedId = remaining.splice(randomIndex, 1)[0];
+        const fact = await Fact.findOne({
+            ...filter,
+            _id: selectedId
+        }).lean();
+
+        if (fact) {
+            return {
+                fact,
+                remaining
+            };
+        }
+    }
+
+    return {
+        fact: null,
+        remaining: []
+    };
+};
+
 const parsePositiveInt = (rawValue, fallback) => {
     const parsed = Number.parseInt(rawValue, 10);
     if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -224,6 +311,7 @@ export const createFact = async (payload, actorUserId) => {
         short_fact: payload.short_fact,
         content: payload.content,
         category_id: payload.category_id,
+        tag_ids: payload.tag_ids ?? [],
         created_by: actorUserId,
         status: FACT_STATUS.DRAFT
     });
@@ -237,6 +325,7 @@ export const getFactList = async (query = {}, actor = null, language = DEFAULT_L
     const { page, limit, skip } = normalizePagination(query);
     const canFilterStatus = await isActorAdminOrEditor(actor);
     const filter = {};
+    const tagFilterIds = parseTagFilterIds(query);
 
     if (canFilterStatus) {
         if (query.status !== undefined) {
@@ -254,6 +343,12 @@ export const getFactList = async (query = {}, actor = null, language = DEFAULT_L
             throw createHttpError(400, "category_id must be a valid ObjectId");
         }
         filter.category_id = query.category_id;
+    }
+
+    if (tagFilterIds.length > 0) {
+        filter.tag_ids = {
+            $in: tagFilterIds.map((tagId) => new mongoose.Types.ObjectId(tagId))
+        };
     }
 
     const searchValue = typeof query.search === "string" ? query.search.trim() : "";
@@ -288,10 +383,11 @@ export const getFactList = async (query = {}, actor = null, language = DEFAULT_L
     };
 };
 
-export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE) => {
+export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, actor = null) => {
     const filter = {
         status: FACT_STATUS.PUBLISHED
     };
+    const tagFilterIds = parseTagFilterIds(query);
 
     if (query.category_id !== undefined) {
         if (!isValidObjectId(query.category_id)) {
@@ -300,26 +396,104 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE) => 
         filter.category_id = new mongoose.Types.ObjectId(query.category_id);
     }
 
-    if (query.exclude_id !== undefined) {
-        if (!isValidObjectId(query.exclude_id)) {
-            throw createHttpError(400, "exclude_id must be a valid ObjectId");
-        }
-        filter._id = {
-            $ne: new mongoose.Types.ObjectId(query.exclude_id)
+    if (tagFilterIds.length > 0) {
+        filter.tag_ids = {
+            $in: tagFilterIds.map((tagId) => new mongoose.Types.ObjectId(tagId))
         };
     }
 
-    const [fact] = await Fact.aggregate([
-        { $match: filter },
-        { $sample: { size: 1 } }
-    ]);
+    const excludedIds = parseExcludedFactIds(query);
+    const isAuthenticated = Boolean(actor?.id && isValidObjectId(String(actor.id)));
 
-    if (!fact) {
+    if (!isAuthenticated) {
+        if (excludedIds.length > 0) {
+            filter._id = {
+                $nin: excludedIds.map((id) => new mongoose.Types.ObjectId(id))
+            };
+        }
+
+        const [fact] = await Fact.aggregate([
+            { $match: filter },
+            { $sample: { size: 1 } }
+        ]);
+
+        if (!fact) {
+            throw createHttpError(404, "Fact not found");
+        }
+
+        const [localizedFact] = await hydrateFactTranslations([fact], language);
+        return {
+            fact: mapFactResponse(localizedFact),
+            meta: {
+                cycle_reset: false,
+                remaining_in_cycle: null
+            }
+        };
+    }
+
+    const userId = String(actor.id);
+    const categoryId = filter.category_id ? String(filter.category_id) : null;
+    const tagScope = tagFilterIds.length > 0 ? tagFilterIds.slice().sort().join(",") : null;
+    const scopeKey = buildRandomSessionScopeKey(userId, categoryId, tagScope);
+
+    let cycleReset = false;
+    let session = await FactRandomSession.findOne({ scope_key: scopeKey });
+    const sessionExisted = Boolean(session);
+
+    if (!session) {
+        session = await FactRandomSession.create({
+            scope_key: scopeKey,
+            user_id: userId,
+            category_id: categoryId,
+            remaining_fact_ids: []
+        });
+    }
+
+    let poolIds = Array.isArray(session.remaining_fact_ids)
+        ? session.remaining_fact_ids.map((id) => String(id))
+        : [];
+
+    if (poolIds.length === 0) {
+        const candidateFacts = await Fact.find(filter).select("_id").lean();
+        if (candidateFacts.length === 0) {
+            throw createHttpError(404, "Fact not found");
+        }
+        poolIds = candidateFacts.map((item) => String(item._id));
+        cycleReset = sessionExisted;
+    }
+
+    let drawResult = await drawRandomFactFromPool(poolIds, filter);
+
+    if (!drawResult.fact) {
+        const candidateFacts = await Fact.find(filter).select("_id").lean();
+        if (candidateFacts.length === 0) {
+            session.remaining_fact_ids = [];
+            await session.save();
+            throw createHttpError(404, "Fact not found");
+        }
+
+        cycleReset = true;
+        poolIds = candidateFacts.map((item) => String(item._id));
+        drawResult = await drawRandomFactFromPool(poolIds, filter);
+    }
+
+    if (!drawResult.fact) {
+        session.remaining_fact_ids = [];
+        await session.save();
         throw createHttpError(404, "Fact not found");
     }
 
-    const [localizedFact] = await hydrateFactTranslations([fact], language);
-    return mapFactResponse(localizedFact);
+    session.remaining_fact_ids = drawResult.remaining;
+    await session.save();
+
+    const [localizedFact] = await hydrateFactTranslations([drawResult.fact], language);
+    return {
+        fact: mapFactResponse(localizedFact),
+        meta: {
+            cycle_reset: cycleReset,
+            remaining_in_cycle: drawResult.remaining.length
+        }
+    };
 };
 
 export const getFactById = async (factId, actor = null, language = DEFAULT_LANGUAGE) => {
@@ -360,7 +534,7 @@ export const updateFactById = async (factId, payload, actor) => {
         throw createHttpError(400, "created_by cannot be updated");
     }
 
-    const allowedFields = ["title", "short_fact", "content", "category_id"];
+    const allowedFields = ["title", "short_fact", "content", "category_id", "tag_ids"];
     const payloadKeys = Object.keys(payload || {});
     const invalidFields = payloadKeys.filter((key) => !allowedFields.includes(key));
     if (invalidFields.length > 0) {
@@ -373,6 +547,24 @@ export const updateFactById = async (factId, payload, actor) => {
 
     if (payload.category_id !== undefined && !isValidObjectId(payload.category_id)) {
         throw createHttpError(400, "category_id must be a valid ObjectId");
+    }
+
+    if (payload.tag_ids !== undefined) {
+        if (!Array.isArray(payload.tag_ids)) {
+            throw createHttpError(400, "tag_ids must be an array of valid ObjectId values");
+        }
+
+        const normalizedTagIds = [...new Set(
+            payload.tag_ids
+                .map((value) => String(value || "").trim())
+                .filter(Boolean)
+        )];
+
+        if (normalizedTagIds.some((id) => !isValidObjectId(id))) {
+            throw createHttpError(400, "tag_ids must contain valid ObjectId values");
+        }
+
+        payload.tag_ids = normalizedTagIds;
     }
 
     const fact = await Fact.findById(factId);
@@ -389,6 +581,7 @@ export const updateFactById = async (factId, payload, actor) => {
     if (payload.short_fact !== undefined) fact.short_fact = payload.short_fact;
     if (payload.content !== undefined) fact.content = payload.content;
     if (payload.category_id !== undefined) fact.category_id = payload.category_id;
+    if (payload.tag_ids !== undefined) fact.tag_ids = payload.tag_ids;
 
     await fact.save();
     await upsertDefaultFactTranslation(fact);

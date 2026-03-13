@@ -43,6 +43,19 @@ const router = express.Router();
  *         schema:
  *           type: string
  *       - in: query
+ *         name: tag_id
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Filter facts that contain this tag id
+ *       - in: query
+ *         name: tag_ids
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: 67ceca911fdb988f26fcbf95,67ceca911fdb988f26fcbf96
+ *         description: Comma-separated tag ids (matches any provided tag)
+ *       - in: query
  *         name: search
  *         required: false
  *         schema:
@@ -86,18 +99,38 @@ router.get("/", authenticateOptional, getFactsController);
  *           type: string
  *         description: Optional category filter
  *       - in: query
+ *         name: tag_id
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional tag filter
+ *       - in: query
+ *         name: tag_ids
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: 67ceca911fdb988f26fcbf95,67ceca911fdb988f26fcbf96
+ *         description: Optional comma-separated tag ids (matches any provided tag)
+ *       - in: query
  *         name: exclude_id
  *         required: false
  *         schema:
  *           type: string
  *         description: Optional fact id to exclude from random result
+ *       - in: query
+ *         name: exclude_ids
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: 67ceca911fdb988f26fcbf95,67ceca911fdb988f26fcbf96
+ *         description: Optional comma-separated fact ids excluded for guest flows
  *     responses:
  *       200:
  *         description: success
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FactItemApiResponse'
+ *               $ref: '#/components/schemas/RandomFactApiResponse'
  *       400:
  *         $ref: '#/components/responses/ValidationFailedResponse'
  *       404:

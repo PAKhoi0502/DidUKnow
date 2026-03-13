@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import { DEFAULT_LANGUAGE, normalizeLanguage } from "../../config/i18n.js";
 
-const createAllowedFields = ["title", "short_fact", "content", "category_id"];
-const updateAllowedFields = ["title", "short_fact", "content", "category_id"];
+const createAllowedFields = ["title", "short_fact", "content", "category_id", "tag_ids"];
+const updateAllowedFields = ["title", "short_fact", "content", "category_id", "tag_ids"];
 const updateStatusAllowedFields = ["status", "reason"];
 const upsertTranslationAllowedFields = ["title", "short_fact", "content"];
 const allowedFactStatuses = ["draft", "published"];
@@ -197,6 +197,46 @@ const validateCategoryIdWithOptionalExistenceCheck = async (categoryId, errors) 
     }
 };
 
+const normalizeObjectIdList = (rawValues) => {
+    if (!Array.isArray(rawValues)) {
+        return null;
+    }
+
+    const normalizedIds = rawValues
+        .map((value) => String(value || "").trim())
+        .filter(Boolean);
+
+    return [...new Set(normalizedIds)];
+};
+
+const validateTagIdsWithOptionalExistenceCheck = async (rawTagIds, errors) => {
+    const normalizedTagIds = normalizeObjectIdList(rawTagIds);
+    if (!normalizedTagIds) {
+        errors.push("tag_ids must be an array of valid ObjectId values");
+        return [];
+    }
+
+    if (normalizedTagIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+        errors.push("tag_ids must contain valid ObjectId values");
+        return [];
+    }
+
+    const TagModel = mongoose.models.Tag;
+    if (!TagModel || normalizedTagIds.length === 0) {
+        return normalizedTagIds;
+    }
+
+    const existingCount = await TagModel.countDocuments({
+        _id: { $in: normalizedTagIds }
+    });
+
+    if (existingCount !== normalizedTagIds.length) {
+        errors.push("One or more tag_ids do not exist");
+    }
+
+    return normalizedTagIds;
+};
+
 export const validateCreateFact = async (req, res, next) => {
     const payload = req.body || {};
     const inputKeys = Object.keys(payload);
@@ -213,7 +253,8 @@ export const validateCreateFact = async (req, res, next) => {
         title,
         short_fact: shortFact,
         content,
-        category_id: categoryId
+        category_id: categoryId,
+        tag_ids: tagIds
     } = payload;
 
     const errors = [];
@@ -251,6 +292,18 @@ export const validateCreateFact = async (req, res, next) => {
         }
     }
 
+    let normalizedTagIds = [];
+    if (inputKeys.includes("tag_ids")) {
+        try {
+            normalizedTagIds = await validateTagIdsWithOptionalExistenceCheck(tagIds, errors);
+        } catch (error) {
+            return res.status(500).json({
+                message: "errors.internal_server_error",
+                error: error.message
+            });
+        }
+    }
+
     if (errors.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
@@ -262,7 +315,8 @@ export const validateCreateFact = async (req, res, next) => {
         title: title.trim(),
         short_fact: shortFact.trim(),
         content: normalizedContent,
-        category_id: categoryId
+        category_id: categoryId,
+        tag_ids: normalizedTagIds
     };
 
     return next();
@@ -291,7 +345,8 @@ export const validateUpdateFact = async (req, res, next) => {
         title,
         short_fact: shortFact,
         content,
-        category_id: categoryId
+        category_id: categoryId,
+        tag_ids: tagIds
     } = payload;
 
     const errors = [];
@@ -320,6 +375,18 @@ export const validateUpdateFact = async (req, res, next) => {
         }
     }
 
+    let normalizedTagIds;
+    if (tagIds !== undefined) {
+        try {
+            normalizedTagIds = await validateTagIdsWithOptionalExistenceCheck(tagIds, errors);
+        } catch (error) {
+            return res.status(500).json({
+                message: "errors.internal_server_error",
+                error: error.message
+            });
+        }
+    }
+
     if (errors.length > 0) {
         return res.status(400).json({
             message: "errors.validation_failed",
@@ -331,7 +398,8 @@ export const validateUpdateFact = async (req, res, next) => {
         ...(title !== undefined ? { title: title.trim() } : {}),
         ...(shortFact !== undefined ? { short_fact: shortFact.trim() } : {}),
         ...(normalizedContent !== undefined ? { content: normalizedContent } : {}),
-        ...(categoryId !== undefined ? { category_id: categoryId } : {})
+        ...(categoryId !== undefined ? { category_id: categoryId } : {}),
+        ...(normalizedTagIds !== undefined ? { tag_ids: normalizedTagIds } : {})
     };
 
     return next();

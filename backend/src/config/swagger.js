@@ -31,6 +31,10 @@ const options = {
                 description: "Fact management APIs"
             },
             {
+                name: "Tag",
+                description: "Tag management APIs"
+            },
+            {
                 name: "Media",
                 description: "Media upload APIs"
             },
@@ -194,7 +198,12 @@ const options = {
                         content: {
                             $ref: "#/components/schemas/FactContentInput"
                         },
-                        category_id: { type: "string", example: "67ceca911fdb988f26fcbf95" }
+                        category_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        tag_ids: {
+                            type: "array",
+                            items: { type: "string" },
+                            example: ["67ceca911fdb988f26fcbf99", "67ceca911fdb988f26fcbf9a"]
+                        }
                     }
                 },
                 UpdateFactInput: {
@@ -205,7 +214,12 @@ const options = {
                         content: {
                             $ref: "#/components/schemas/FactContentInput"
                         },
-                        category_id: { type: "string", example: "67ceca911fdb988f26fcbf95" }
+                        category_id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        tag_ids: {
+                            type: "array",
+                            items: { type: "string" },
+                            example: ["67ceca911fdb988f26fcbf99", "67ceca911fdb988f26fcbf9a"]
+                        }
                     }
                 },
                 UpdateFactStatusInput: {
@@ -243,6 +257,11 @@ const options = {
                         short_fact: { type: "string", example: "Octopuses have three hearts and blue blood." },
                         content: { $ref: "#/components/schemas/FactContentInput" },
                         category_id: { type: "string", example: "67ceca911fdb988f26fcbf96" },
+                        tag_ids: {
+                            type: "array",
+                            items: { type: "string" },
+                            example: ["67ceca911fdb988f26fcbf99", "67ceca911fdb988f26fcbf9a"]
+                        },
                         status: { type: "string", enum: ["draft", "published"], example: "published" },
                         created_by: { type: "string", example: "67ceca911fdb988f26fcbf97" },
                         created_at: { type: "string", format: "date-time", example: "2026-03-12T08:30:00.000Z" },
@@ -281,6 +300,25 @@ const options = {
                         }
                     }
                 },
+                RandomFactMeta: {
+                    type: "object",
+                    properties: {
+                        cycle_reset: { type: "boolean", example: false },
+                        remaining_in_cycle: { type: "integer", nullable: true, example: 12 }
+                    }
+                },
+                RandomFactApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get random fact successfully" },
+                        data: {
+                            $ref: "#/components/schemas/FactResponse"
+                        },
+                        meta: {
+                            $ref: "#/components/schemas/RandomFactMeta"
+                        }
+                    }
+                },
                 FactListApiResponse: {
                     type: "object",
                     properties: {
@@ -309,6 +347,52 @@ const options = {
                         message: { type: "string", example: "Upsert fact translation successfully" },
                         data: {
                             $ref: "#/components/schemas/FactTranslationResponse"
+                        }
+                    }
+                },
+                CreateTagInput: {
+                    type: "object",
+                    required: ["name"],
+                    properties: {
+                        name: { type: "string", minLength: 2, maxLength: 60, example: "Science" },
+                        slug: { type: "string", example: "science" }
+                    }
+                },
+                UpdateTagInput: {
+                    type: "object",
+                    properties: {
+                        name: { type: "string", minLength: 2, maxLength: 60, example: "Astronomy" },
+                        slug: { type: "string", example: "astronomy" }
+                    }
+                },
+                TagResponse: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "67ceca911fdb988f26fcbf95" },
+                        name: { type: "string", example: "Science" },
+                        slug: { type: "string", example: "science" },
+                        created_at: { type: "string", format: "date-time", example: "2026-03-12T08:30:00.000Z" },
+                        updated_at: { type: "string", format: "date-time", example: "2026-03-12T08:35:00.000Z" }
+                    }
+                },
+                TagItemApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get tag successfully" },
+                        data: {
+                            $ref: "#/components/schemas/TagResponse"
+                        }
+                    }
+                },
+                TagListApiResponse: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", example: "Get tags successfully" },
+                        data: {
+                            type: "array",
+                            items: {
+                                $ref: "#/components/schemas/TagResponse"
+                            }
                         }
                     }
                 },
@@ -505,6 +589,26 @@ const options = {
                         }
                     }
                 },
+                CreateTagRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/CreateTagInput"
+                            }
+                        }
+                    }
+                },
+                UpdateTagRequestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                $ref: "#/components/schemas/UpdateTagInput"
+                            }
+                        }
+                    }
+                },
                 CreateCategoryRequestBody: {
                     required: true,
                     content: {
@@ -554,6 +658,12 @@ const options = {
                 },
                 CategoryInUseResponse: {
                     description: "cannot delete category because it is being used by facts"
+                },
+                TagDuplicateResponse: {
+                    description: "duplicate tag name or slug"
+                },
+                TagInUseResponse: {
+                    description: "cannot delete tag because it is being used by facts"
                 },
                 RoleInUseResponse: {
                     description: "cannot delete role because it is being used by users"

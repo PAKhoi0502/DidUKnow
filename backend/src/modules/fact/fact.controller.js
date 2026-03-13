@@ -47,10 +47,15 @@ export const getFactByIdController = async (req, res, next) => {
 
 export const getRandomFactController = async (req, res, next) => {
     try {
-        const fact = await getRandomFact(req.query, req.language);
+        const {
+            fact,
+            meta
+        } = await getRandomFact(req.query, req.language, req.user ?? null);
+
         return res.status(200).json({
             message: "facts.get_random_success",
-            data: fact
+            data: fact,
+            meta
         });
     } catch (error) {
         return next(error);
