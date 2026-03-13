@@ -46,16 +46,47 @@ const getPreferredLanguage = (language) => {
     return normalizeLanguage(language) ?? DEFAULT_LANGUAGE;
 };
 
+const mergeTranslatedImages = (sourceImages, translatedImages) => {
+    const baseImages = Array.isArray(sourceImages) ? sourceImages : [];
+    const localizedImages = Array.isArray(translatedImages) ? translatedImages : [];
+
+    if (baseImages.length === 0) {
+        return localizedImages;
+    }
+
+    return baseImages.map((baseImage, index) => {
+        const localizedImage = localizedImages[index];
+        if (!localizedImage || typeof localizedImage !== "object") {
+            return baseImage;
+        }
+
+        return {
+            ...baseImage,
+            url: baseImage?.url ?? localizedImage?.url ?? null,
+            ...(localizedImage.alt !== undefined ? { alt: localizedImage.alt } : {}),
+            ...(localizedImage.caption !== undefined ? { caption: localizedImage.caption } : {})
+        };
+    });
+};
+
 const applyFactTranslation = (factDoc, translationDoc) => {
     if (!translationDoc) {
         return factDoc;
     }
 
+    const factContent = factDoc?.content || {};
+    const translationContent = translationDoc?.content || {};
+
     return {
         ...factDoc,
-        title: translationDoc.title,
-        short_fact: translationDoc.short_fact,
-        content: translationDoc.content
+        title: translationDoc.title ?? factDoc.title,
+        short_fact: translationDoc.short_fact ?? factDoc.short_fact,
+        content: {
+            intro: translationContent.intro ?? factContent.intro,
+            body: translationContent.body ?? factContent.body,
+            conclusion: translationContent.conclusion ?? factContent.conclusion,
+            images: mergeTranslatedImages(factContent.images, translationContent.images)
+        }
     };
 };
 

@@ -5,7 +5,7 @@ const factTranslationContentImageSchema = new mongoose.Schema(
     {
         url: {
             type: String,
-            required: true,
+            default: null,
             trim: true
         },
         alt: {

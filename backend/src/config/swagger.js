@@ -135,6 +135,14 @@ const options = {
                         caption: { type: "string", nullable: true, maxLength: 200, example: "Honey jar found in an ancient tomb" }
                     }
                 },
+                FactContentImageTranslationInput: {
+                    type: "object",
+                    properties: {
+                        url: { type: "string", format: "uri", nullable: true, example: "https://cdn.example.com/facts/honey-1.jpg" },
+                        alt: { type: "string", nullable: true, maxLength: 150, example: "Ancient honey jar" },
+                        caption: { type: "string", nullable: true, maxLength: 200, example: "Honey jar found in an ancient tomb" }
+                    }
+                },
                 FactContentInput: {
                     type: "object",
                     required: ["intro", "body", "conclusion"],
@@ -152,6 +160,27 @@ const options = {
                             maxItems: 10,
                             items: {
                                 $ref: "#/components/schemas/FactContentImageInput"
+                            }
+                        }
+                    }
+                },
+                FactContentTranslationInput: {
+                    type: "object",
+                    required: ["intro", "body", "conclusion"],
+                    properties: {
+                        intro: { type: "string", minLength: 20, maxLength: 400, example: "Honey is one of the most stable natural foods." },
+                        body: {
+                            type: "string",
+                            minLength: 80,
+                            maxLength: 8000,
+                            example: "Its low water content and natural acidity make it difficult for microbes to grow, which is why properly stored honey can remain edible for very long periods."
+                        },
+                        conclusion: { type: "string", minLength: 20, maxLength: 600, example: "In proper conditions, honey can stay safe and delicious for years." },
+                        images: {
+                            type: "array",
+                            maxItems: 10,
+                            items: {
+                                $ref: "#/components/schemas/FactContentImageTranslationInput"
                             }
                         }
                     }
@@ -202,7 +231,7 @@ const options = {
                         title: { type: "string", minLength: 5, maxLength: 150, example: "Ban co biet mat ong khong bao gio hong?" },
                         short_fact: { type: "string", minLength: 10, maxLength: 280, example: "Mat ong co the giu duoc hang nghin nam neu bao quan tot." },
                         content: {
-                            $ref: "#/components/schemas/FactContentInput"
+                            $ref: "#/components/schemas/FactContentTranslationInput"
                         }
                     }
                 },
@@ -269,7 +298,7 @@ const options = {
                         language: { type: "string", enum: SUPPORTED_LANGUAGES, example: "vi" },
                         title: { type: "string", example: "Ban co biet mat ong khong bao gio hong?" },
                         short_fact: { type: "string", example: "Mat ong co the giu duoc hang nghin nam neu bao quan tot." },
-                        content: { $ref: "#/components/schemas/FactContentInput" },
+                        content: { $ref: "#/components/schemas/FactContentTranslationInput" },
                         created_at: { type: "string", format: "date-time", example: "2026-03-12T08:30:00.000Z" },
                         updated_at: { type: "string", format: "date-time", example: "2026-03-12T08:35:00.000Z" }
                     }

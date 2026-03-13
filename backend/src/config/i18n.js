@@ -52,7 +52,6 @@ const RAW_MESSAGE_TO_KEY = new Map([
     ["short_fact is required", "errors.fact_short_fact_required"],
     ["short_fact must be between 10 and 280 characters", "errors.fact_short_fact_range_10_280"],
     ["content is required", "errors.fact_content_required"],
-    ["content must be at least 20 characters", "errors.fact_content_min_20"],
     ["content must be an object", "errors.fact_content_object_required"],
     ["content.intro must be between 20 and 400 characters", "errors.fact_content_intro_range_20_400"],
     ["content.body must be between 80 and 8000 characters", "errors.fact_content_body_range_80_8000"],

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { normalizeLanguage } from "../../config/i18n.js";
+import { DEFAULT_LANGUAGE, normalizeLanguage } from "../../config/i18n.js";
 
 const createAllowedFields = ["title", "short_fact", "content", "category_id"];
 const updateAllowedFields = ["title", "short_fact", "content", "category_id"];
@@ -91,6 +91,81 @@ const validateAndNormalizeContent = (content, errors) => {
 
             normalizedImages.push({
                 url: typeof url === "string" ? url.trim() : url,
+                ...(alt !== undefined ? { alt: alt === null ? null : alt.trim() } : {}),
+                ...(caption !== undefined ? { caption: caption === null ? null : caption.trim() } : {})
+            });
+        });
+    }
+
+    return {
+        intro: typeof intro === "string" ? intro.trim() : intro,
+        body: typeof body === "string" ? body.trim() : body,
+        conclusion: typeof conclusion === "string" ? conclusion.trim() : conclusion,
+        images: normalizedImages
+    };
+};
+
+const validateAndNormalizeTranslationContent = (content, errors) => {
+    if (!isNonArrayObject(content)) {
+        errors.push("content must be an object");
+        return null;
+    }
+
+    const { intro, body, conclusion, images } = content;
+
+    if (typeof intro !== "string" || intro.trim().length < 20 || intro.trim().length > 400) {
+        errors.push("content.intro must be between 20 and 400 characters");
+    }
+
+    if (typeof body !== "string" || body.trim().length < 80 || body.trim().length > 8000) {
+        errors.push("content.body must be between 80 and 8000 characters");
+    }
+
+    if (typeof conclusion !== "string" || conclusion.trim().length < 20 || conclusion.trim().length > 600) {
+        errors.push("content.conclusion must be between 20 and 600 characters");
+    }
+
+    if (images !== undefined && !Array.isArray(images)) {
+        errors.push("content.images must be an array");
+    }
+
+    const normalizedImages = [];
+
+    if (Array.isArray(images)) {
+        if (images.length > CONTENT_IMAGE_MAX_ITEMS) {
+            errors.push(`content.images can contain at most ${CONTENT_IMAGE_MAX_ITEMS} items`);
+        }
+
+        images.forEach((image) => {
+            if (!isNonArrayObject(image)) {
+                errors.push("content.images items must be objects");
+                return;
+            }
+
+            const {
+                url,
+                alt,
+                caption
+            } = image;
+
+            if (url !== undefined && url !== null && !isValidHttpUrl(url)) {
+                errors.push("content.images.url must be a valid http/https URL");
+            }
+
+            if (alt !== undefined && alt !== null) {
+                if (typeof alt !== "string" || alt.trim().length > 150) {
+                    errors.push("content.images.alt must be a string up to 150 characters");
+                }
+            }
+
+            if (caption !== undefined && caption !== null) {
+                if (typeof caption !== "string" || caption.trim().length > 200) {
+                    errors.push("content.images.caption must be a string up to 200 characters");
+                }
+            }
+
+            normalizedImages.push({
+                ...(url !== undefined ? { url: url === null ? null : url.trim() } : {}),
                 ...(alt !== undefined ? { alt: alt === null ? null : alt.trim() } : {}),
                 ...(caption !== undefined ? { caption: caption === null ? null : caption.trim() } : {})
             });
@@ -365,8 +440,13 @@ export const validateUpsertFactTranslation = (req, res, next) => {
         errors.push("content is required");
     }
 
+    const isDefaultLanguageTranslation = req.params.language === DEFAULT_LANGUAGE;
     const normalizedContent = inputKeys.includes("content")
-        ? validateAndNormalizeContent(content, errors)
+        ? (
+            isDefaultLanguageTranslation
+                ? validateAndNormalizeContent(content, errors)
+                : validateAndNormalizeTranslationContent(content, errors)
+        )
         : null;
 
     if (errors.length > 0) {

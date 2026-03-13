@@ -45,7 +45,6 @@
   "errors.fact_short_fact_required": "short_fact la bat buoc.",
   "errors.fact_short_fact_range_10_280": "short_fact phai tu 10 den 280 ky tu.",
   "errors.fact_content_required": "content la bat buoc.",
-  "errors.fact_content_min_20": "content phai co it nhat 20 ky tu.",
   "errors.fact_content_object_required": "content phai la mot object.",
   "errors.fact_content_intro_range_20_400": "content.intro phai tu 20 den 400 ky tu.",
   "errors.fact_content_body_range_80_8000": "content.body phai tu 80 den 8000 ky tu.",
