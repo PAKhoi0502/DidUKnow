@@ -2,16 +2,24 @@ import express from "express";
 import {
     createUserController,
     deleteUserController,
+    getMyProfileController,
     getUsersController,
     loginUserController,
+    logoutUserController,
+    refreshUserTokenController,
+    updateMyProfileController,
     updateUserController,
     updateUserRoleController,
     updateMyLanguageController
 } from "./user.controller.js";
 import {
     validateCreateUser,
+    validateGetUsersQuery,
     validateLoginUser,
+    validateLogout,
+    validateRefreshToken,
     validateUpdateLanguage,
+    validateUpdateMyProfile,
     validateUpdateUserRole,
     validateUpdateUser,
     validateUserIdParam
@@ -21,7 +29,8 @@ import { authorizeRoles } from "../../middlewares/role.middleware.js";
 import {
     createUserRateLimit,
     loginAccountRateLimit,
-    loginIpRateLimit
+    loginIpRateLimit,
+    refreshTokenRateLimit
 } from "../../middlewares/rateLimit.middleware.js";
 
 const router = express.Router();
@@ -42,7 +51,7 @@ const router = express.Router();
  *       403:
  *         $ref: '#/components/responses/ForbiddenResponse'
  */
-router.get("/", authenticate, authorizeRoles("Admin"), getUsersController);
+router.get("/", authenticate, authorizeRoles("Admin"), validateGetUsersQuery, getUsersController);
 
 /**
  * @swagger
@@ -82,6 +91,34 @@ router.post("/login", loginIpRateLimit, loginAccountRateLimit, validateLoginUser
 
 /**
  * @swagger
+ * /api/users/refresh-token:
+ *   post:
+ *     tags: [Login]
+ *     summary: Refresh access token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refresh_token]
+ *             properties:
+ *               refresh_token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: success
+ *       400:
+ *         $ref: '#/components/responses/ValidationFailedResponse'
+ *       401:
+ *         description: invalid refresh token
+ */
+router.post("/refresh-token", refreshTokenRateLimit, validateRefreshToken, refreshUserTokenController);
+
+router.post("/logout", validateLogout, logoutUserController);
+
+/**
+ * @swagger
  * /api/users/me/language:
  *   patch:
  *     tags: [Language]
@@ -99,6 +136,8 @@ router.post("/login", loginIpRateLimit, loginAccountRateLimit, validateLoginUser
  *         description: unauthorized
  */
 router.patch("/me/language", authenticate, validateUpdateLanguage, updateMyLanguageController);
+router.get("/me", authenticate, getMyProfileController);
+router.patch("/me", authenticate, validateUpdateMyProfile, updateMyProfileController);
 
 /**
  * @swagger

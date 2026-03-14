@@ -2,6 +2,7 @@ import express from "express";
 import {
     createReportFactController,
     getAllReportFactsController,
+    getReportFactByIdController,
     getMyReportFactsController,
     updateReportFactStatusController
 } from "./reportFact.controller.js";
@@ -138,6 +139,14 @@ router.get(
     authorizeRoles("Admin", "Editor"),
     validateReportFactListQuery,
     getAllReportFactsController
+);
+
+router.get(
+    "/:id",
+    authenticate,
+    authorizeRoles("Admin", "Editor"),
+    validateReportIdParam,
+    getReportFactByIdController
 );
 
 /**

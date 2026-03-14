@@ -159,6 +159,17 @@ export const getAllReportFacts = async (query = {}) => {
     };
 };
 
+export const getReportFactById = async (reportId) => {
+    ensureValidObjectId(reportId, "id");
+    const report = await ReportFact.findById(reportId).lean();
+
+    if (!report) {
+        throw createHttpError(404, "errors.report_fact_not_found");
+    }
+
+    return mapReportFactResponse(report);
+};
+
 export const updateReportFactStatusById = async (reportId, payload, actorUserId) => {
     ensureValidObjectId(reportId, "id");
     ensureValidObjectId(actorUserId, "user_id");

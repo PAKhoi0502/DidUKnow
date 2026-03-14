@@ -17,12 +17,29 @@ const parseRequiredPositiveInt = (envName) => {
     return parsed;
 };
 
+const parsePositiveIntWithDefault = (envName, defaultValue) => {
+    const rawValue = process.env[envName];
+
+    if (rawValue === undefined || rawValue === null || rawValue === "") {
+        return defaultValue;
+    }
+
+    const parsed = Number.parseInt(rawValue, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw new Error(`Invalid environment variable: ${envName} must be a positive integer`);
+    }
+
+    return parsed;
+};
+
 const CREATE_USER_RATE_LIMIT_WINDOW_MS = parseRequiredPositiveInt("CREATE_USER_RATE_LIMIT_WINDOW_MS");
 const CREATE_USER_RATE_LIMIT_MAX = parseRequiredPositiveInt("CREATE_USER_RATE_LIMIT_MAX");
 const LOGIN_RATE_LIMIT_WINDOW_MS = parseRequiredPositiveInt("LOGIN_RATE_LIMIT_WINDOW_MS");
 const LOGIN_RATE_LIMIT_MAX = parseRequiredPositiveInt("LOGIN_RATE_LIMIT_MAX");
 const LOGIN_ACCOUNT_RATE_LIMIT_WINDOW_MS = parseRequiredPositiveInt("LOGIN_ACCOUNT_RATE_LIMIT_WINDOW_MS");
 const LOGIN_ACCOUNT_RATE_LIMIT_MAX = parseRequiredPositiveInt("LOGIN_ACCOUNT_RATE_LIMIT_MAX");
+const REFRESH_RATE_LIMIT_WINDOW_MS = parsePositiveIntWithDefault("REFRESH_RATE_LIMIT_WINDOW_MS", 10 * 60 * 1000);
+const REFRESH_RATE_LIMIT_MAX = parsePositiveIntWithDefault("REFRESH_RATE_LIMIT_MAX", 30);
 
 export const createUserRateLimit = rateLimit({
     windowMs: CREATE_USER_RATE_LIMIT_WINDOW_MS,
@@ -53,4 +70,12 @@ export const loginAccountRateLimit = rateLimit({
         return `login_ip_fallback:${ipKeyGenerator(req.ip)}`;
     },
     message: buildRateLimitResponse("errors.rate_limit_login_account")
+});
+
+export const refreshTokenRateLimit = rateLimit({
+    windowMs: REFRESH_RATE_LIMIT_WINDOW_MS,
+    max: REFRESH_RATE_LIMIT_MAX,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: buildRateLimitResponse("errors.rate_limit_refresh_token")
 });

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Role from "../role/role.model.js";
 import { SUPPORTED_LANGUAGES } from "../../config/i18n.js";
+import { REFRESH_TOKEN_COOKIE_NAME } from "../../utils/refreshTokenCookie.js";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const allowedLanguages = SUPPORTED_LANGUAGES;
@@ -81,6 +82,40 @@ export const validateLoginUser = (req, res, next) => {
     return next();
 };
 
+export const validateRefreshToken = (req, res, next) => {
+    const bodyRefreshToken = req.body?.refresh_token;
+    const cookieRefreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
+    const refreshToken = bodyRefreshToken || cookieRefreshToken;
+
+    if (!refreshToken || typeof refreshToken !== "string") {
+        return res.status(400).json({
+            message: "errors.validation_failed",
+            errors: ["errors.refresh_token_required"]
+        });
+    }
+
+    req.validatedBody = {
+        refresh_token: refreshToken.trim()
+    };
+
+    return next();
+};
+
+export const validateLogout = (req, res, next) => {
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] || req.body?.refresh_token;
+
+    if (!refreshToken || typeof refreshToken !== "string") {
+        req.validatedBody = { refresh_token: null };
+        return next();
+    }
+
+    req.validatedBody = {
+        refresh_token: refreshToken.trim()
+    };
+
+    return next();
+};
+
 export const validateUpdateLanguage = (req, res, next) => {
     const { language } = req.body;
 
@@ -104,6 +139,53 @@ export const validateUserIdParam = (req, res, next) => {
             errors: ["errors.id_invalid"]
         });
     }
+
+    return next();
+};
+
+const parsePositiveInt = (rawValue, fallback) => {
+    const parsed = Number.parseInt(rawValue, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        return fallback;
+    }
+    return parsed;
+};
+
+export const validateGetUsersQuery = (req, res, next) => {
+    const {
+        search,
+        status,
+        role_id: roleId,
+        page,
+        limit
+    } = req.query || {};
+    const errors = [];
+
+    if (status !== undefined && !["active", "inactive", "banned"].includes(String(status))) {
+        errors.push("errors.user_status_invalid_active_inactive_banned");
+    }
+
+    if (roleId !== undefined && !mongoose.Types.ObjectId.isValid(String(roleId))) {
+        errors.push("errors.role_id_invalid");
+    }
+
+    const parsedPage = parsePositiveInt(page, 1);
+    const parsedLimit = parsePositiveInt(limit, 10);
+
+    if (errors.length > 0) {
+        return res.status(400).json({
+            message: "errors.validation_failed",
+            errors
+        });
+    }
+
+    req.query = {
+        ...(search !== undefined ? { search: String(search).trim() } : {}),
+        ...(status !== undefined ? { status: String(status) } : {}),
+        ...(roleId !== undefined ? { role_id: String(roleId) } : {}),
+        page: parsedPage,
+        limit: parsedLimit
+    };
 
     return next();
 };
@@ -178,6 +260,75 @@ export const validateUpdateUser = async (req, res, next) => {
         ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
         ...(language !== undefined ? { language } : {}),
         ...(status !== undefined ? { status } : {})
+    };
+
+    return next();
+};
+
+export const validateUpdateMyProfile = async (req, res, next) => {
+    const payload = req.body || {};
+    const allowedFields = ["username", "email", "password", "avatar_url", "language"];
+    const inputKeys = Object.keys(payload);
+
+    if (inputKeys.length === 0) {
+        return res.status(400).json({
+            message: "errors.validation_failed",
+            errors: ["errors.update_payload_required"]
+        });
+    }
+
+    const invalidFields = inputKeys.filter((key) => !allowedFields.includes(key));
+    if (invalidFields.length > 0) {
+        return res.status(400).json({
+            message: "errors.validation_failed",
+            errors: ["errors.invalid_fields"],
+            details: { invalid_fields: invalidFields }
+        });
+    }
+
+    const {
+        username,
+        email,
+        password,
+        avatar_url: avatarUrl,
+        language
+    } = payload;
+
+    const errors = [];
+
+    if (username !== undefined && (typeof username !== "string" || username.trim().length < 3)) {
+        errors.push("errors.username_min_length_3");
+    }
+
+    if (email !== undefined && (typeof email !== "string" || !emailRegex.test(email.trim()))) {
+        errors.push("errors.email_invalid");
+    }
+
+    if (password !== undefined && (typeof password !== "string" || password.length < 6)) {
+        errors.push("errors.password_min_length_6");
+    }
+
+    if (avatarUrl !== undefined && avatarUrl !== null && typeof avatarUrl !== "string") {
+        errors.push("errors.avatar_url_string");
+    }
+
+    if (language !== undefined && !allowedLanguages.includes(language)) {
+        errors.push("errors.language_invalid_vi_en");
+    }
+
+    if (errors.length > 0) {
+        return res.status(400).json({
+            message: "errors.validation_failed",
+            errors
+        });
+    }
+
+    req.validatedBody = {
+        ...(username !== undefined ? { username: username.trim() } : {}),
+        ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
+        ...(password !== undefined ? { password } : {}),
+        ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+        ...(language !== undefined ? { language } : {})
     };
 
     return next();

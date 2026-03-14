@@ -35,9 +35,28 @@ const ensureValidObjectId = (value, fieldName = "id") => {
 };
 
 const mapCommentResponse = (commentDoc) => {
+    const populatedUser = (
+        commentDoc?.user_id
+        && typeof commentDoc.user_id === "object"
+        && commentDoc.user_id._id
+    )
+        ? commentDoc.user_id
+        : null;
+
+    const userId = populatedUser
+        ? populatedUser._id
+        : commentDoc.user_id;
+
     return {
         id: commentDoc._id,
-        user_id: commentDoc.user_id,
+        user_id: userId,
+        user: populatedUser
+            ? {
+                id: populatedUser._id,
+                username: populatedUser.username,
+                avatar_url: populatedUser.avatar_url ?? null
+            }
+            : null,
         fact_id: commentDoc.fact_id,
         content: commentDoc.content,
         created_at: commentDoc.created_at
@@ -85,7 +104,11 @@ export const createComment = async (userId, payload) => {
         content: payload.content
     });
 
-    return mapCommentResponse(comment.toObject());
+    const createdComment = await Comment.findById(comment._id)
+        .populate("user_id", "username avatar_url")
+        .lean();
+
+    return mapCommentResponse(createdComment);
 };
 
 export const getCommentsByFactId = async (factId, query = {}) => {
@@ -100,6 +123,7 @@ export const getCommentsByFactId = async (factId, query = {}) => {
 
     const [items, total] = await Promise.all([
         Comment.find(filter)
+            .populate("user_id", "username avatar_url")
             .sort({ created_at: -1 })
             .skip(skip)
             .limit(limit)
@@ -125,6 +149,7 @@ export const getMyComments = async (userId, query = {}) => {
 
     const [items, total] = await Promise.all([
         Comment.find(filter)
+            .populate("user_id", "username avatar_url")
             .sort({ created_at: -1 })
             .skip(skip)
             .limit(limit)
@@ -157,6 +182,7 @@ export const updateCommentById = async (commentId, payload, actor) => {
 
     comment.content = payload.content;
     await comment.save();
+    await comment.populate("user_id", "username avatar_url");
     return mapCommentResponse(comment.toObject());
 };
 
@@ -172,8 +198,10 @@ export const deleteCommentById = async (commentId, actor) => {
         throw createHttpError(403, "errors.forbidden");
     }
 
+    await comment.populate("user_id", "username avatar_url");
+    const deletedSnapshot = mapCommentResponse(comment.toObject());
     await comment.deleteOne();
-    return mapCommentResponse(comment.toObject());
+    return deletedSnapshot;
 };
 
 export const deleteCommentsByFactId = async (factId) => {

@@ -1,11 +1,26 @@
+import crypto from "crypto";
 import User from "./user.model.js";
 import { comparePassword, hashPassword } from "../../utils/hashPassword.js";
-import { generateAccessToken } from "../../utils/generateToken.js";
+import {
+    generateAccessToken,
+    generateRefreshToken,
+    verifyRefreshToken
+} from "../../utils/generateToken.js";
 import Role from "../role/role.model.js";
 import UserRoleAudit from "./userRoleAudit.model.js";
+import RefreshToken from "./refreshToken.model.js";
 import { createHttpError } from "../../utils/httpError.js";
 
 const mapUserResponse = (userDoc) => {
+    const populatedRole = (
+        userDoc?.role_id
+        && typeof userDoc.role_id === "object"
+        && userDoc.role_id !== null
+        && userDoc.role_id._id
+    )
+        ? userDoc.role_id
+        : null;
+
     return {
         id: userDoc._id,
         username: userDoc.username,
@@ -13,7 +28,8 @@ const mapUserResponse = (userDoc) => {
         avatar_url: userDoc.avatar_url,
         language: userDoc.language,
         status: userDoc.status,
-        role_id: userDoc.role_id,
+        role_id: populatedRole ? populatedRole._id : userDoc.role_id,
+        role_name: populatedRole?.name ?? null,
         email_verified_at: userDoc.email_verified_at,
         last_login_at: userDoc.last_login_at,
         created_at: userDoc.created_at,
@@ -21,12 +37,112 @@ const mapUserResponse = (userDoc) => {
     };
 };
 
-export const getAllUsers = async () => {
-    const users = await User.find({})
-        .sort({ created_at: -1 })
-        .lean();
+const hashToken = (token) => {
+    return crypto.createHash("sha256").update(token).digest("hex");
+};
 
-    return users.map(mapUserResponse);
+const createRefreshTokenRecord = async (userId) => {
+    const tokenId = crypto.randomUUID();
+    const refreshToken = generateRefreshToken({
+        user_id: userId.toString(),
+        token_id: tokenId
+    });
+    const payload = verifyRefreshToken(refreshToken);
+
+    if (!payload?.exp) {
+        throw createHttpError(500, "errors.internal_server_error");
+    }
+
+    const refreshTokenDoc = await RefreshToken.create({
+        user_id: userId,
+        token_hash: hashToken(refreshToken),
+        expires_at: new Date(payload.exp * 1000)
+    });
+
+    return {
+        refresh_token: refreshToken,
+        refresh_token_doc: refreshTokenDoc
+    };
+};
+
+const revokeAllUserRefreshTokens = async (userId) => {
+    await RefreshToken.updateMany(
+        {
+            user_id: userId,
+            revoked_at: null
+        },
+        {
+            $set: {
+                revoked_at: new Date()
+            }
+        }
+    );
+};
+
+const LIST_DEFAULT_PAGE = 1;
+const LIST_DEFAULT_LIMIT = 10;
+const LIST_MAX_LIMIT = 100;
+
+const parsePositiveInt = (rawValue, fallback) => {
+    const parsed = Number.parseInt(rawValue, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        return fallback;
+    }
+    return parsed;
+};
+
+const escapeRegex = (value) => {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+export const getAllUsers = async (query = {}) => {
+    const page = parsePositiveInt(query.page, LIST_DEFAULT_PAGE);
+    const requestedLimit = parsePositiveInt(query.limit, LIST_DEFAULT_LIMIT);
+    const limit = Math.min(requestedLimit, LIST_MAX_LIMIT);
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+
+    if (query.status !== undefined) {
+        filter.status = query.status;
+    }
+
+    if (query.role_id !== undefined) {
+        filter.role_id = query.role_id;
+    }
+
+    const rawSearch = typeof query.search === "string" ? query.search.trim() : "";
+    if (rawSearch.length > 0) {
+        const searchRegex = new RegExp(escapeRegex(rawSearch), "i");
+        const matchedRoles = await Role.find({ name: searchRegex }).select("_id").lean();
+        const matchedRoleIds = matchedRoles.map((role) => role._id);
+
+        filter.$or = [
+            { username: searchRegex },
+            { email: searchRegex },
+            ...(matchedRoleIds.length > 0 ? [{ role_id: { $in: matchedRoleIds } }] : [])
+        ];
+    }
+
+    const [users, total] = await Promise.all([
+        User.find(filter)
+            .populate("role_id", "name status")
+            .sort({ created_at: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        User.countDocuments(filter)
+    ]);
+
+    return {
+        items: users.map(mapUserResponse),
+        pagination: {
+            page,
+            limit,
+            total,
+            total_pages: Math.ceil(total / limit)
+        }
+    };
 };
 
 export const createUser = async (payload) => {
@@ -56,11 +172,15 @@ export const createUser = async (payload) => {
         role_id: defaultUserRole._id
     });
 
-    return mapUserResponse(user.toObject());
+    return {
+        ...mapUserResponse(user.toObject()),
+        role_name: defaultUserRole.name
+    };
 };
 
 export const loginUser = async (payload) => {
-    const user = await User.findOne({ email: payload.email });
+    const user = await User.findOne({ email: payload.email })
+        .populate("role_id", "name status");
 
     if (!user) {
         throw createHttpError(401, "errors.invalid_credentials");
@@ -77,11 +197,80 @@ export const loginUser = async (payload) => {
     const token = generateAccessToken({
         user_id: user._id.toString()
     });
+    const refreshData = await createRefreshTokenRecord(user._id);
 
     return {
         access_token: token,
+        refresh_token: refreshData.refresh_token,
         user: mapUserResponse(user.toObject())
     };
+};
+
+export const refreshUserSession = async (refreshToken) => {
+    const payload = verifyRefreshToken(refreshToken);
+
+    if (!payload?.user_id || !payload?.token_id) {
+        throw createHttpError(401, "errors.invalid_or_expired_token");
+    }
+
+    const existingRefreshToken = await RefreshToken.findOne({
+        token_hash: hashToken(refreshToken)
+    });
+
+    if (!existingRefreshToken) {
+        throw createHttpError(401, "errors.invalid_or_expired_token");
+    }
+
+    if (existingRefreshToken.revoked_at || existingRefreshToken.expires_at <= new Date()) {
+        await revokeAllUserRefreshTokens(existingRefreshToken.user_id);
+        throw createHttpError(401, "errors.invalid_or_expired_token");
+    }
+
+    const user = await User.findById(payload.user_id)
+        .populate("role_id", "name status");
+
+    if (!user) {
+        throw createHttpError(401, "errors.user_not_found");
+    }
+
+    if (user.status !== "active") {
+        throw createHttpError(403, "errors.user_not_active");
+    }
+
+    const newAccessToken = generateAccessToken({
+        user_id: user._id.toString()
+    });
+    const newRefreshData = await createRefreshTokenRecord(user._id);
+
+    existingRefreshToken.revoked_at = new Date();
+    existingRefreshToken.replaced_by_token_id = newRefreshData.refresh_token_doc._id;
+    await existingRefreshToken.save();
+
+    return {
+        access_token: newAccessToken,
+        refresh_token: newRefreshData.refresh_token,
+        user: mapUserResponse(user.toObject())
+    };
+};
+
+export const logoutUserSession = async (refreshToken) => {
+    const payload = verifyRefreshToken(refreshToken);
+
+    if (!payload?.user_id || !payload?.token_id) {
+        return;
+    }
+
+    await RefreshToken.updateOne(
+        {
+            token_hash: hashToken(refreshToken),
+            revoked_at: null
+        },
+        {
+            $set: {
+                revoked_at: new Date()
+            }
+        }
+    );
 };
 
 export const updateUserLanguage = async (userId, language) => {
@@ -96,6 +285,18 @@ export const updateUserLanguage = async (userId, language) => {
     }
 
     return mapUserResponse(user.toObject());
+};
+
+export const getUserById = async (userId) => {
+    const user = await User.findById(userId)
+        .populate("role_id", "name status")
+        .lean();
+
+    if (!user) {
+        throw createHttpError(404, "errors.user_not_found");
+    }
+
+    return mapUserResponse(user);
 };
 
 export const updateUserById = async (userId, payload) => {

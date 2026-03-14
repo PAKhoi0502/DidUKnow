@@ -461,13 +461,26 @@ export const getRandomFact = async (query = {}, language = DEFAULT_LANGUAGE, act
     let session = await FactRandomSession.findOne({ scope_key: scopeKey });
     const sessionExisted = Boolean(session);
 
+    // Handle concurrent requests creating same random session scope.
     if (!session) {
-        session = await FactRandomSession.create({
-            scope_key: scopeKey,
-            user_id: userId,
-            category_id: categoryId,
-            remaining_fact_ids: []
-        });
+        try {
+            session = await FactRandomSession.create({
+                scope_key: scopeKey,
+                user_id: userId,
+                category_id: categoryId,
+                remaining_fact_ids: []
+            });
+        } catch (error) {
+            if (error?.code === 11000) {
+                session = await FactRandomSession.findOne({ scope_key: scopeKey });
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    if (!session) {
+        throw createHttpError(500, "errors.internal_server_error");
     }
 
     let poolIds = Array.isArray(session.remaining_fact_ids)
